@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include <borealis.hpp>
 
@@ -15,7 +15,11 @@ struct StreamSettingsSnapshot {
     int height = 720;
     int bitrate_kbps = 10000;
     std::string preferred_game_language = "auto";
+#ifdef __SWITCH__
     stream::VideoBackend video_backend = stream::VideoBackend::HardwareZeroCopy;
+#else
+    stream::VideoBackend video_backend = stream::VideoBackend::Software;
+#endif
     stream::PostProcessMode post_process_mode = stream::PostProcessMode::Off;
     bool dithering_enabled = false;
     bool vibration_enabled = true;

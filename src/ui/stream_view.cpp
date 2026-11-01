@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "stream_view.h"
 #include "button_mapping_activity.h"
 #include "stream_overlay.h"
@@ -10,7 +10,12 @@
 #include "../platform/network_worker.h"
 #include "../stream/media_pipeline.h"
 #include "../stream/software_video_frame.h"
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_gamepad.h"
+#include "../platform/native_presentation.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <exception>
@@ -21,12 +26,18 @@ namespace lunar::ui {
 namespace {
 
 bool isExitComboPressed() {
+#ifdef __SWITCH__
     PadState pad{};
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
     padInitializeDefault(&pad);
     padUpdate(&pad);
     u64 buttons = padGetButtons(&pad);
     return (buttons & HidNpadButton_Minus) && (buttons & HidNpadButton_Plus);
+#else
+    using namespace platform::mapping_bits;
+    auto buttons = platform::nativeButtons();
+    return (buttons & HidNpadButton_Minus) && (buttons & HidNpadButton_Plus);
+#endif
 }
 
 constexpr float kQuickMenuEdgeWidth = 96.0f;
@@ -100,6 +111,9 @@ public:
         nvgRect(vg, draw_x, draw_y, draw_w, draw_h);
         nvgFillPaint(vg, image);
         nvgFill(vg);
+#ifndef __SWITCH__
+        platform::noteNativePresentation(frame.generation);
+#endif
     }
 
 private:

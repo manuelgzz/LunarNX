@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "../api/xbox_api_client.h"
 #include "poster_loader.h"
 

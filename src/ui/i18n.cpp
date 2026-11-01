@@ -56,6 +56,7 @@ std::string resolveNoticeLocale(const std::string& language) {
         return isSupportedLanguage(language) ? language : "en-US";
     }
 
+    #ifdef __SWITCH__
     uint64_t language_code = 0;
     if (R_SUCCEEDED(setGetSystemLanguage(&language_code))) {
         char language_name[sizeof(language_code) + 1] = {};
@@ -66,6 +67,10 @@ std::string resolveNoticeLocale(const std::string& language) {
             return system_language;
         }
     }
+    #else
+    const auto locale = lunar::platform::nativeLocale();
+    if (locale == "en-US" || locale == "zh-Hans" || locale == "zh-Hant") return locale;
+    #endif
     return "en-US";
 }
 
@@ -119,7 +124,11 @@ bool saveConfiguredLanguage(const std::string& language) {
 
 std::string getLanguageRestartNotice(const std::string& language) {
     const std::string locale = resolveNoticeLocale(language);
+    #ifdef __SWITCH__
     const std::string path = "romfs:/i18n/" + locale + "/lunarnx.json";
+#else
+    const std::string path = std::string(BRLS_RESOURCES) + "i18n/" + locale + "/lunarnx.json";
+#endif
     cJSON* root = readJsonObject(path.c_str());
     if (root) {
         cJSON* settings = cJSON_GetObjectItemCaseSensitive(root, "settings");

@@ -119,6 +119,10 @@ private:
     std::vector<uint8_t> software_rgba_;
     std::mutex software_mutex_;
 #else
+#ifdef LUNARNX_NATIVE_UI
+    void* native_sws_ = nullptr;
+    std::vector<uint8_t> native_rgba_;
+#endif
     void* window_ = nullptr;
     void* renderer_ = nullptr;
     void* texture_ = nullptr;

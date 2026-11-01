@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_settings_activity.h"
 #include "button_mapping_activity.h"
 #include "ui_style.h"

@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <borealis.hpp>
 #include "../app/stream_runtime.h"
 #include "../common/operation_generation.h"

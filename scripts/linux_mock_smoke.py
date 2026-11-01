@@ -38,7 +38,10 @@ def main():
         # Use the host's LAN address for ICE while HTTP stays on loopback.
         addresses = subprocess.check_output(["hostname", "-I"], text=True).split()
         address = next(value for value in addresses if "." in value and not value.startswith("127."))
+        native_ui = "--native-ui" in sys.argv[1:]
         environment = {**os.environ, "SDL_AUDIODRIVER": "dummy",
+                       "XDG_CONFIG_HOME": str(directory / "config"),
+                       "XDG_CACHE_HOME": str(directory / "cache"),
                        "LIBGL_ALWAYS_SOFTWARE": "1"}
         server_log = directory / "server.log"
         client_log = directory / "client.log"
@@ -61,10 +64,13 @@ def main():
                 else:
                     raise RuntimeError("Mock server readiness timed out")
                 with client_log.open("w") as output:
-                    client = subprocess.Popen([
-                        "xvfb-run", "-a", str(ROOT / "build/linux/linux_mock_stream"),
-                        "http://127.0.0.1:18080"
-                    ], cwd=directory, stdout=output, stderr=subprocess.STDOUT,
+                    client_command = ["xvfb-run", "-a"]
+                    if native_ui:
+                        client_command += [str(ROOT / "build/linux-ui/LunarNX_Linux"), "--mock-smoke"]
+                    else:
+                        client_command += [str(ROOT / "build/linux/linux_mock_stream")]
+                    client_command.append("http://127.0.0.1:18080")
+                    client = subprocess.Popen(client_command, cwd=directory, stdout=output, stderr=subprocess.STDOUT,
                        env=environment, start_new_session=True)
                     try:
                         result = client.wait(timeout=90)

@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "stream_settings_activity.h"
 
 #include "button_mapping_activity.h"
@@ -105,6 +105,7 @@ int gameLanguageIndex(const std::string& locale) {
 }
 
 std::string systemGameLanguage() {
+    #ifdef __SWITCH__
     uint64_t language_code = 0;
     if (R_FAILED(setGetSystemLanguage(&language_code))) return "en-US";
     char name[sizeof(language_code) + 1] = {};
@@ -126,6 +127,11 @@ std::string systemGameLanguage() {
     if (language == "pt-BR") return "pt-BR";
     if (language == "ru") return "ru-RU";
     return "en-US";
+    #else
+    const auto locale = lunar::platform::nativeLocale();
+    for (const auto& option : kGameLanguages) if (locale == option.value) return locale;
+    return "en-US";
+    #endif
 }
 
 int regionIndexForIp(const std::string& ip) {
@@ -285,6 +291,9 @@ StreamSettingsSnapshot loadStreamSettings() {
         settings.rumble_strength_percent = std::clamp(strength->valueint, 0, 100);
     }
     cJSON_Delete(root);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    settings.video_backend = stream::VideoBackend::Software;
+#endif
     return settings;
 }
 
@@ -408,6 +417,7 @@ brls::View* StreamSettingsActivity::createContentView() {
     }
 
     if (addGlobalSettings) {
+#ifdef __SWITCH__
     int backend_index = 0;
     if (settings_.video_backend == stream::VideoBackend::HardwareCopyOut) {
         backend_index = 1;
@@ -430,11 +440,19 @@ brls::View* StreamSettingsActivity::createContentView() {
             }
             if (ctrl_) ctrl_->setDefaultVideoBackend(settings_.video_backend);
         });
+
+#else
+    auto* decoder = new brls::SelectorCell();
+    decoder->init(brls::getStr("lunarnx/settings/decoder"),
+        {brls::getStr("lunarnx/settings/decoder_software")}, 0,
+        [this](int) { settings_.video_backend = stream::VideoBackend::Software; });
+#endif
     video_card->addView(decoder);
     }
     root->addView(video_card);
 
     if (addGlobalSettings) {
+#ifdef __SWITCH__
     root->addView(makeSectionHeader(
         brls::getStr("lunarnx/settings/image_section"),
         brls::getStr("lunarnx/settings/image_section_detail")));
@@ -472,6 +490,7 @@ brls::View* StreamSettingsActivity::createContentView() {
         });
     image_card->addView(dithering);
     root->addView(image_card);
+#endif
     }
 
     if (scope_ == StreamSettingsScope::Xbox) {

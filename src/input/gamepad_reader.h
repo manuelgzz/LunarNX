@@ -40,7 +40,7 @@ public:
     bool isConnected() const;
 
 private:
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     ButtonMappingProfile mapping_profile_ = ButtonMappingProfile::Xbox;
     ButtonMapping button_mapping_ =
         defaultButtonMapping(ButtonMappingProfile::Xbox);

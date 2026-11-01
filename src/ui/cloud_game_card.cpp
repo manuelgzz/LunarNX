@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "cloud_game_card.h"
 
 #include "ui_style.h"

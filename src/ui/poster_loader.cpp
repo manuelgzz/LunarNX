@@ -21,12 +21,12 @@
 #include <utility>
 #include <vector>
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <dirent.h>
 #include <sys/stat.h>
 #endif
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <borealis/core/thread.hpp>
 #endif
 
@@ -95,7 +95,7 @@ bool hasImageSignature(const std::string& bytes) {
 }
 
 void ensurePosterCacheDirectory() {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     ::mkdir("sdmc:/switch", 0777);
     ::mkdir("sdmc:/switch/LunarNX", 0777);
     ::mkdir("sdmc:/switch/LunarNX/cache", 0777);
@@ -120,7 +120,7 @@ std::shared_ptr<const std::string> readDiskPoster(const std::string& url) {
 }
 
 void pruneDiskPosterCache() {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     if (g_disk_cache_pruned && g_disk_cache_writes % 32 != 0) return;
     g_disk_cache_pruned = true;
     DIR* directory = opendir(lunar::get_cover_cache_dir());
@@ -386,7 +386,7 @@ PosterLoader& PosterLoader::instance() {
     return loader;
 }
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 PosterLoader::BatchId PosterLoader::beginBatch() {
     std::deque<PosterJob> cancelled;

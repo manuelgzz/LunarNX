@@ -19,6 +19,10 @@
 #include <condition_variable>
 #endif
 
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+#include "platform/native_paths.h"
+#endif
+
 namespace lunar {
 
 // Platform abstraction helpers
@@ -35,6 +39,19 @@ inline const char* get_ps_route_preferences_path() { return "sdmc:/switch/LunarN
 inline const char* get_psn_callback_import_path() { return "sdmc:/switch/LunarNX/psn_callback.txt"; }
 inline const char* get_xbox_console_cache_path() { return "sdmc:/switch/LunarNX/xbox_console_cache.json"; }
 inline const char* get_xbox_ice_preferences_path() { return "sdmc:/switch/LunarNX/xbox_ice_preferences.json"; }
+#elif defined(LUNARNX_NATIVE_UI)
+inline const char* get_config_path() { return platform::nativePath("config.json", false); }
+inline const char* get_token_path() { return platform::nativePath("token.json", false); }
+inline const char* get_log_path() { return platform::nativePath("debug.log", true); }
+inline const char* get_cloud_library_cache_path() { return platform::nativePath("xcloud_library_cache.json", true); }
+inline const char* get_cover_cache_dir() { return platform::nativePath("cache/covers", true); }
+inline const char* get_ps_credentials_path() { return platform::nativePath("ps_credentials.json", false); }
+inline const char* get_psn_token_path() { return platform::nativePath("psn_token.json", false); }
+inline const char* get_ps_console_cache_path() { return platform::nativePath("ps_console_cache.json", true); }
+inline const char* get_ps_route_preferences_path() { return platform::nativePath("ps_route_preferences.json", false); }
+inline const char* get_psn_callback_import_path() { return platform::nativePath("psn_callback.txt", false); }
+inline const char* get_xbox_console_cache_path() { return platform::nativePath("xbox_console_cache.json", true); }
+inline const char* get_xbox_ice_preferences_path() { return platform::nativePath("xbox_ice_preferences.json", false); }
 #else
 inline const char* get_config_path() { return "./config.json"; }
 inline const char* get_token_path()  { return "./token.json"; }

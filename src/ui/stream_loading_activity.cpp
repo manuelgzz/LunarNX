@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "stream_loading_activity.h"
 
 #include "stream_view.h"

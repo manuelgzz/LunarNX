@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "about_activity.h"
 
 #include "qr_code.h"
@@ -25,7 +25,11 @@ constexpr const char* kReleasesUrl =
     "https://github.com/thinkzhou/LunarNX/releases";
 constexpr const char* kDiscordInviteUrl = "https://discord.gg/cFZj8mpg2K";
 constexpr const char* kDiscordInviteDisplay = "discord.gg/cFZj8mpg2K";
+#ifdef __SWITCH__
 constexpr const char* kChangelogResource = "romfs:/changelog.json";
+#else
+constexpr const char* kChangelogResource = BRLS_RESOURCES "changelog.json";
+#endif
 constexpr size_t kMaxChangelogBytes = 64 * 1024;
 
 struct ReleaseEntry {
@@ -241,7 +245,11 @@ brls::Button* makeReleaseCard(const std::string& title,
 }
 
 bool resourceExists(const std::string& resource) {
+#ifdef __SWITCH__
     const std::string path = "romfs:/" + resource;
+#else
+    const std::string path = std::string(BRLS_RESOURCES) + resource;
+#endif
     FILE* file = std::fopen(path.c_str(), "rb");
     if (!file) return false;
     std::fclose(file);

@@ -2294,6 +2294,12 @@ void VideoRenderer::shutdown(){
 }
 #else
 #include <SDL2/SDL.h>
+#ifdef LUNARNX_NATIVE_UI
+extern "C" {
+#include <libswscale/swscale.h>
+#include <libavutil/pixfmt.h>
+}
+#endif
 #include <mutex>
 namespace lunar::stream {
 VideoRenderer::VideoRenderer()=default;VideoRenderer::~VideoRenderer(){shutdown();}
@@ -2353,6 +2359,11 @@ bool VideoRenderer::initialize(const char* t,int w,int h){
   successful_presents_.store(0,std::memory_order_release);
   last_successful_present_ns_.store(0,std::memory_order_release);
   consecutive_render_faults_.store(0,std::memory_order_release);
+#ifdef LUNARNX_NATIVE_UI
+  (void)t; (void)w; (void)h;
+  SoftwareVideoFrameSink::instance().clear();
+  return true;
+#else
   if(SDL_Init(SDL_INIT_VIDEO)<0)return false;
   auto* win=SDL_CreateWindow(t,SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,w,h,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
   if(!win)return false;window_=win;
@@ -2360,9 +2371,29 @@ bool VideoRenderer::initialize(const char* t,int w,int h){
   if(!r)return false;renderer_=r;
   auto* tx=SDL_CreateTexture(r,SDL_PIXELFORMAT_IYUV,SDL_TEXTUREACCESS_STREAMING,w,h);
   if(!tx)return false;texture_=tx;return true;
+#endif
 }
 bool VideoRenderer::render(const VideoFrame& f){
   std::lock_guard<std::mutex> lock(sdl_mutex_);
+#ifdef LUNARNX_NATIVE_UI
+  if (f.width <= 0 || f.height <= 0 || f.width > 8192 || f.height > 8192 || !f.data[0]) {
+    markRenderFault(RenderFault::InvalidFrame);
+    return false;
+  }
+  native_sws_ = sws_getCachedContext(static_cast<SwsContext*>(native_sws_),
+      f.width, f.height, static_cast<AVPixelFormat>(f.format),
+      f.width, f.height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+  if (!native_sws_) return false;
+  native_rgba_.resize(static_cast<size_t>(f.width) * f.height * 4);
+  uint8_t* pixels[] = {native_rgba_.data(), nullptr, nullptr, nullptr};
+  int pitches[] = {f.width * 4, 0, 0, 0};
+  if (sws_scale(static_cast<SwsContext*>(native_sws_), f.data, f.linesize,
+                0, f.height, pixels, pitches) != f.height) return false;
+  if (!SoftwareVideoFrameSink::instance().publishRgba(
+          native_rgba_.data(), f.width, f.height, f.timestamp)) return false;
+  recordSuccessfulPresent();
+  return true;
+#else
   auto* t=static_cast<SDL_Texture*>(texture_);
   auto* r=static_cast<SDL_Renderer*>(renderer_);
   if(!t||!r){
@@ -2378,13 +2409,26 @@ bool VideoRenderer::render(const VideoFrame& f){
   SDL_RenderPresent(r);
   recordSuccessfulPresent();
   return true;
+#endif
 }
 void VideoRenderer::present(){}
 bool VideoRenderer::prepareDecoderReset(){return true;}
-bool VideoRenderer::pollEvents(){SDL_Event e;while(SDL_PollEvent(&e))if(e.type==SDL_QUIT||(e.type==SDL_KEYDOWN&&e.key.keysym.sym==SDLK_ESCAPE))return false;return true;}
+bool VideoRenderer::pollEvents(){
+#ifdef LUNARNX_NATIVE_UI
+return true;
+#else
+SDL_Event e;while(SDL_PollEvent(&e))if(e.type==SDL_QUIT||(e.type==SDL_KEYDOWN&&e.key.keysym.sym==SDLK_ESCAPE))return false;return true;
+#endif
+}
 void VideoRenderer::shutdown(){
   setRenderStage(VideoRenderStage::Shutdown);
   std::lock_guard<std::mutex> lock(sdl_mutex_);
+#ifdef LUNARNX_NATIVE_UI
+  sws_freeContext(static_cast<SwsContext*>(native_sws_));
+  native_sws_ = nullptr;
+  native_rgba_.clear();
+  SoftwareVideoFrameSink::instance().clear();
+#endif
   if(texture_){SDL_DestroyTexture(static_cast<SDL_Texture*>(texture_));texture_=nullptr;}
   if(renderer_){SDL_DestroyRenderer(static_cast<SDL_Renderer*>(renderer_));renderer_=nullptr;}
   if(window_){SDL_DestroyWindow(static_cast<SDL_Window*>(window_));window_=nullptr;}

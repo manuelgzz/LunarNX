@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <borealis.hpp>
 #include <vector>
 #endif
@@ -16,7 +16,7 @@ constexpr size_t gridTargetColumn(size_t source_column, size_t target_row_size) 
         : std::min(source_column, target_row_size - 1);
 }
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 inline void wireVerticalGridNavigation(
     const std::vector<std::vector<brls::View*>>& rows) {
     for (size_t row = 0; row < rows.size(); ++row) {

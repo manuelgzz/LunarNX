@@ -1,8 +1,12 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include <borealis.hpp>
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_gamepad.h"
+#endif
 
 #include "../input/button_mapping.h"
 
@@ -32,7 +36,9 @@ private:
     brls::Box* mapping_content_ = nullptr;
     brls::Box* capture_content_ = nullptr;
     brls::Label* capture_status_ = nullptr;
+#ifdef __SWITCH__
     PadState capture_pad_{};
+#endif
     size_t capture_index_ = 0;
     uint64_t peak_buttons_ = 0;
     bool capturing_ = false;

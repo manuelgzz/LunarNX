@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <borealis.hpp>
 #endif
 
@@ -16,7 +16,7 @@ public:
 
     static PosterLoader& instance();
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     BatchId beginBatch();
     void load(brls::Image* view, const std::string& url, BatchId batch);
     void clear(brls::Image* view);
