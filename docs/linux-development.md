@@ -54,7 +54,7 @@ PSN authentication. PlayStation controllers are still guarded by __SWITCH__.
 ```sh
 make -f Makefile.linux -j2 linux-mock-stream
 python3 -m venv build/mock-venv
-build/mock-venv/bin/pip install aiortc==1.14.0 aiohttp==3.13.2
+build/mock-venv/bin/pip install -r linux/mock-requirements.txt
 build/mock-venv/bin/python scripts/linux_mock_smoke.py
 ```
 

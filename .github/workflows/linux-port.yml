@@ -79,7 +79,7 @@ jobs:
       - name: Stream from the local Xbox mock
         run: |
           python3 -m venv build/mock-venv
-          build/mock-venv/bin/pip install aiortc==1.14.0 aiohttp==3.13.2
+          build/mock-venv/bin/pip install -r linux/mock-requirements.txt
           build/mock-venv/bin/python tools/mock_xbox/test_protocol_shapes.py
           build/mock-venv/bin/python scripts/linux_mock_smoke.py
       - name: Focused transport regressions
