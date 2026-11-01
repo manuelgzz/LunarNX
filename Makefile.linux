@@ -72,3 +72,9 @@ LINUX_SMOKE_OBJS = $(filter-out $(BUILD)/src/platform/desktop_main.o,$(CXX_OBJS)
 linux-native-smoke: $(BUILD)/linux_native_smoke
 $(BUILD)/linux_native_smoke: $(LINUX_SMOKE_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(LINUX_SMOKE_OBJS) $(LDFLAGS) $(shell $(PKG_CONFIG) --libs libavformat)
+
+LINUX_MOCK_OBJS = $(filter-out $(BUILD)/src/platform/desktop_main.o,$(CXX_OBJS)) $(C_OBJS) $(BUILD)/tests/linux_mock_stream.o
+.PHONY: linux-mock-stream
+linux-mock-stream: $(BUILD)/linux_mock_stream
+$(BUILD)/linux_mock_stream: $(LINUX_MOCK_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LINUX_MOCK_OBJS) $(LDFLAGS)

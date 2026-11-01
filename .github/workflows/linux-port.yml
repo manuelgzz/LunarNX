@@ -66,7 +66,7 @@ jobs:
       - name: Build native transport dependencies
         run: bash scripts/build_linux_dependencies.sh
       - name: Build complete native runner
-        run: make -f Makefile.linux -j2 all linux-native-smoke
+        run: make -f Makefile.linux -j2 all linux-native-smoke linux-mock-stream
       - name: Decode and present synthetic video and audio
         env:
           SDL_AUDIODRIVER: dummy
@@ -75,6 +75,11 @@ jobs:
           ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x180:rate=60 -frames:v 8 -c:v libx264 -preset ultrafast -tune zerolatency -g 1 -pix_fmt yuv420p -f h264 /tmp/fixture.h264
           ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x180:rate=60 -frames:v 8 -c:v libx265 -preset ultrafast -x265-params pools=1:frame-threads=1:keyint=1:log-level=error -pix_fmt yuv420p -f hevc /tmp/fixture.hevc
           xvfb-run -a build/linux/linux_native_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+      - name: Stream from the local Xbox mock
+        run: |
+          python3 -m venv build/mock-venv
+          build/mock-venv/bin/pip install aiortc==1.14.0 aiohttp==3.13.2
+          build/mock-venv/bin/python scripts/linux_mock_smoke.py
       - name: Focused transport regressions
         run: |
           python3 tests/xbox_stream_session_order_test.py
