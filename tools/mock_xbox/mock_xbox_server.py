@@ -896,11 +896,16 @@ async def create_webrtc_answer(session: Session) -> str:
 
     # --- Create answer ---
     answer = await pc.createAnswer()
+    # Apply the Xbox/passive role to aiortc itself, not only to the SDP sent
+    # over HTTP. Rewriting after setLocalDescription leaves aiortc acting as
+    # a DTLS client while libpeer also acts as a client (ClientHello collision).
+    answer = RTCSessionDescription(
+        sdp=re.sub(r"a=setup:(?:active|actpass)", "a=setup:passive", answer.sdp),
+        type=answer.type,
+    )
     await pc.setLocalDescription(answer)
 
     sdp = pc.localDescription.sdp
-    if "a=setup:passive" not in sdp:
-        sdp = re.sub(r"a=setup:(?:active|actpass)", "a=setup:passive", sdp)
     session.answer_sdp = sdp
     inline_candidates = _extract_inline_candidates(sdp)
     if inline_candidates:

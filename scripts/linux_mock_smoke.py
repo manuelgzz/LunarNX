@@ -47,7 +47,7 @@ def main():
                 sys.executable, str(ROOT / "tools/mock_xbox/mock_xbox_server.py"),
                 "--video", str(fixture), "--host", "127.0.0.1",
                 "--http-port", "18080", "--public-ip", address,
-                "--cloud-titles", "0", "--debug-webrtc"
+                "--cloud-titles", "0"
             ], cwd=directory, stdout=output, stderr=subprocess.STDOUT, env=environment)
             try:
                 for attempt in range(100):

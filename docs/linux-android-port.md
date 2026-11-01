@@ -25,19 +25,23 @@ remains a separate implementation until an explicit migration decision.
 Makefile.linux reuses the maintained desktop source list but overrides the Apple
 toolchain flags, library discovery, interface-name filter and output directory.
 It does not fetch dependencies or change the active legacy libpeer provider.
-It requires the prepared, pinned legacy dependency and native Linux libraries.
+Pinned native dependency preparation and build scripts now provide the legacy
+libpeer, mbedTLS, libsrtp, usrsctp and coreHTTP sources without cloning. Native
+Linux libraries are discovered through pkg-config. See linux-development.md.
 
 The isolated tests/portable CMake project compiles existing shared policy tests
 without libnx, SDL, credentials or network services. GitHub Actions runs those
 tests and checks that Linux commands contain no Apple toolchain flags.
 
-These tests are a foundation, not evidence that the full desktop runner builds,
-that streaming works, or that a release package is ready.
+The complete Linux desktop runner now builds in CI. Offline smoke tests validate
+H.264/HEVC decode and SDL presentation plus Opus output/concealment. A separate
+local Xbox mock exercises the session/transport/media stack. Neither replaces
+real-console validation or establishes that a release package is ready.
 
 ## Linux milestones
 
-1. Build the complete native runner with reproducible legacy libpeer/mbedTLS/
-   libsrtp dependencies. Keep all tracked packet-buffer and transport fixes.
+1. Native runner and reproducible legacy libpeer/mbedTLS/libsrtp/usrsctp
+   dependencies: implemented. Keep all tracked packet-buffer and transport fixes.
 2. Port Borealis startup, UI and resources; replace Switch-specific storage,
    browser login, controller, networking and media presentation hooks.
 3. Enable and validate Xbox Remote Play, Cloud Gaming and PS local/PSN paths
@@ -58,6 +62,6 @@ another integration. Do not claim that an empty APK is a streaming port.
 ## Validation limits
 
 No Switch source or build files are changed by this foundation.
-Full streaming, authentication, Borealis Linux UI, AppImage, APK and real-device
+Real-console streaming, authentication, Borealis Linux UI, AppImage, APK and real-device
 testing remain outstanding. In particular, tests do not prove that every Chiaki
 or XStreaming setting exists in LunarNX; settings need an explicit parity audit.

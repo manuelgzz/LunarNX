@@ -6,6 +6,7 @@ on:
       - "Makefile.linux"
       - "linux/**"
       - "scripts/*linux*"
+      - "tools/mock_xbox/**"
       - "tests/portable/**"
       - "tests/*_test.cpp"
       - "src/**"
@@ -66,7 +67,7 @@ jobs:
       - name: Build native transport dependencies
         run: bash scripts/build_linux_dependencies.sh
       - name: Build complete native runner
-        run: make -f Makefile.linux -j2 NATIVE_DTLS_DEBUG=1 all linux-native-smoke linux-mock-stream
+        run: make -f Makefile.linux -j2 all linux-native-smoke linux-mock-stream
       - name: Decode and present synthetic video and audio
         env:
           SDL_AUDIODRIVER: dummy
@@ -79,6 +80,7 @@ jobs:
         run: |
           python3 -m venv build/mock-venv
           build/mock-venv/bin/pip install aiortc==1.14.0 aiohttp==3.13.2
+          build/mock-venv/bin/python tools/mock_xbox/test_protocol_shapes.py
           build/mock-venv/bin/python scripts/linux_mock_smoke.py
       - name: Focused transport regressions
         run: |
