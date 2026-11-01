@@ -1,0 +1,48 @@
+name: Linux port foundation
+on:
+  push:
+    branches: [main, "port/**"]
+    paths:
+      - "Makefile.linux"
+      - "tests/portable/**"
+      - "tests/*_test.cpp"
+      - "src/**"
+      - ".github/workflows/linux-port.yml"
+  pull_request:
+    paths:
+      - "Makefile.linux"
+      - "tests/portable/**"
+      - "tests/*_test.cpp"
+      - "src/**"
+      - ".github/workflows/linux-port.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD
+      - name: Configure shared policy tests
+        run: cmake -S tests/portable -B build/portable -DCMAKE_BUILD_TYPE=Release
+      - name: Compile shared policy tests
+        run: cmake --build build/portable --parallel 2
+      - name: Run shared policy tests
+        run: ctest --test-dir build/portable --output-on-failure
+      - name: Verify Linux toolchain flags
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev
+          make -f Makefile.linux linux-toolchain-report > /tmp/linux-build.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          commands = Path("/tmp/linux-build.txt").read_text()
+          forbidden = ("xcrun", "-isysroot", "/opt/homebrew", "-framework", 'CONFIG_IFACE_PREFIX=\\"en0')
+          for flag in forbidden:
+              assert flag not in commands, f"Apple-specific flag leaked into Linux: {flag}"
+          assert "build/linux/LunarNX_Desktop" in commands
+          PY
