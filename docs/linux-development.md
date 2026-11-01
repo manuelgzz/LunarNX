@@ -1,8 +1,10 @@
 # Native Linux development
 
-The current Linux target is the desktop test runner, not the finished Borealis
-application. It links the Xbox session/WebRTC/media stack in one executable.
-It does not launch Chiaki-ng or XStreamingDesktop applications.
+Linux has a native Borealis interface and a separate diagnostic CLI target.
+The interface renders Xbox video inside its own window and retains separate
+Xbox and PlayStation settings and controller mappings. It does not launch
+Chiaki-ng or XStreamingDesktop applications. PlayStation connection and native
+hardware decoding are still pending; the PlayStation tile currently opens settings.
 
 ## Build
 
@@ -64,11 +66,40 @@ stack with dummy credentials, checks that video and audio frames arrive, then
 stops the session. Generated media, logs and any runtime state stay in a
 temporary working directory. The test does not authenticate to Microsoft.
 
+## Native interface
+
+Add libgl1-mesa-dev and libswscale-dev to the packages above, then run:
+
+```sh
+python3 scripts/prepare_linux_ui.py
+cmake -S linux/ui -B build/linux-ui -DCMAKE_BUILD_TYPE=Release
+cmake --build build/linux-ui --parallel 2
+ctest --test-dir build/linux-ui --output-on-failure
+build/linux-ui/LunarNX_Linux
+```
+
+Resources are copied beside the executable. Settings and account state use
+XDG_CONFIG_HOME/lunarnx (default ~/.config/lunarnx); cached images and diagnostics
+use XDG_CACHE_HOME/lunarnx (default ~/.cache/lunarnx). Keep account files private.
+The native software video path uses FFmpeg and uploads RGBA frames to Borealis;
+it does not create an additional SDL video window.
+
+CI checks navigation through home, global settings, Xbox settings, PlayStation
+settings and controller mapping in a single window. It also streams synthetic
+video/audio through the real Xbox WebRTC stack into that same window:
+
+```sh
+SDL_AUDIODRIVER=dummy xvfb-run -a build/linux-ui/LunarNX_Linux --ui-smoke
+build/mock-venv/bin/python scripts/linux_mock_smoke.py --native-ui
+```
+
+The isolated settings test also exercises SDL virtual controller mapping and
+rumble strength. Real account authentication, console streaming, physical
+controller behavior and handheld suspend/resume still require device testing.
+
 ## Next platform work
 
-Port Borealis startup and resources using its existing desktop/SDL support.
-Separate the outer UI and PlayStation feature guards from libnx-specific code
-rather than defining __SWITCH__ on Linux. Adapt storage, locale, controller and
-browser callbacks; preserve per-platform settings. Link a native Chiaki build
-and validate local pairing and PSN flows before calling the unified app ready.
-Android and AppImage packaging follow the working native UI and platform layer.
+Link a native Chiaki build and adapt the PlayStation discovery, pairing,
+PSN callback and controller platform hooks. Validate local pairing and PSN
+flows before calling the unified app ready. AppImage packaging and Android
+platform work remain pending.

@@ -47,6 +47,11 @@ constexpr auto kSlowStreamStopThreshold = std::chrono::seconds(3);
 
 class SoftwareVideoView : public brls::View {
 public:
+#ifdef LUNARNX_NATIVE_UI
+    SoftwareVideoView(std::shared_ptr<app::IStreamRuntime> runtime,
+                      std::shared_ptr<std::atomic<bool>> terminal_stop)
+        : runtime_(std::move(runtime)), terminal_stop_(std::move(terminal_stop)) {}
+#endif
     ~SoftwareVideoView() override {
         if (nvg_image_ >= 0) {
             nvgDeleteImage(brls::Application::getNVGContext(), nvg_image_);
@@ -63,6 +68,12 @@ public:
               brls::FrameContext* ctx) override {
         (void)style;
         (void)ctx;
+#ifdef LUNARNX_NATIVE_UI
+        // SDL controller output must be serviced on the UI thread, including
+        // intervals without a newly decoded frame. Stop before worker teardown.
+        if (terminal_stop_->load()) return;
+        runtime_->update();
+#endif
 
         nvgBeginPath(vg);
         nvgRect(vg, x, y, width, height);
@@ -117,6 +128,10 @@ public:
     }
 
 private:
+#ifdef LUNARNX_NATIVE_UI
+    std::shared_ptr<app::IStreamRuntime> runtime_;
+    std::shared_ptr<std::atomic<bool>> terminal_stop_;
+#endif
     int nvg_image_ = -1;
     int image_width_ = 0;
     int image_height_ = 0;
@@ -390,7 +405,11 @@ brls::View* StreamView::createContentView() {
         root->addView(hardware_video);
     } else {
         root->setBackgroundColor(nvgRGBA(0, 0, 0, 255));
+#ifdef LUNARNX_NATIVE_UI
+        auto* software_video = new SoftwareVideoView(runtime_, terminal_stop_);
+#else
         auto* software_video = new SoftwareVideoView();
+#endif
         software_video->setWidth(brls::Application::ORIGINAL_WINDOW_WIDTH);
         software_video->setHeight(brls::Application::ORIGINAL_WINDOW_HEIGHT);
         software_video->setDetachedPosition(0, 0);
