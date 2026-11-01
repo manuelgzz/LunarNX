@@ -122,6 +122,8 @@ jobs:
       - name: Build LunarNX
         env:
           CURL_PROVIDER: moonlight
+          DROP_DIAG: "1"
+          LATENCY_DIAG: "1"
         run: ./scripts/build_switch_in_container.sh
 
       - name: Run build regressions
