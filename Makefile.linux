@@ -66,3 +66,9 @@ linux-toolchain-report:
 	@printf '%s\n' 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)' 'TARGET=$(TARGET)'
 
 C_SRCS := $(filter-out lib/stubs/chiaki_holepunch_stubs.c,$(C_SRCS))
+
+LINUX_SMOKE_OBJS = $(filter-out $(BUILD)/src/platform/desktop_main.o,$(CXX_OBJS)) $(C_OBJS) $(BUILD)/tests/linux_native_smoke.o
+.PHONY: linux-native-smoke
+linux-native-smoke: $(BUILD)/linux_native_smoke
+$(BUILD)/linux_native_smoke: $(LINUX_SMOKE_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LINUX_SMOKE_OBJS) $(LDFLAGS) $(shell $(PKG_CONFIG) --libs libavformat)
