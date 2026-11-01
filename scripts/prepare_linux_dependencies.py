@@ -43,7 +43,7 @@ def unpack(repository: str, revision: str, destination: Path) -> str:
         entries = list(Path(folder).iterdir())
         if len(entries) != 1 or not entries[0].is_dir():
             raise RuntimeError(f"Unexpected archive layout: {repository}")
-        shutil.copytree(entries[0], destination, dirs_exist_ok=True)
+        shutil.copytree(entries[0], destination, dirs_exist_ok=True, symlinks=True)
     return hashlib.sha256(archive).hexdigest()
 
 

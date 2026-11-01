@@ -96,10 +96,14 @@ bool hasImageSignature(const std::string& bytes) {
 
 void ensurePosterCacheDirectory() {
 #if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
+#ifdef __SWITCH__
     ::mkdir("sdmc:/switch", 0777);
     ::mkdir("sdmc:/switch/LunarNX", 0777);
     ::mkdir("sdmc:/switch/LunarNX/cache", 0777);
     ::mkdir(lunar::get_cover_cache_dir(), 0777);
+#else
+    std::filesystem::create_directories(lunar::get_cover_cache_dir());
+#endif
 #endif
 }
 
