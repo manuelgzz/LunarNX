@@ -66,7 +66,7 @@ jobs:
       - name: Build native transport dependencies
         run: bash scripts/build_linux_dependencies.sh
       - name: Build complete native runner
-        run: make -f Makefile.linux -j2 all linux-native-smoke linux-mock-stream
+        run: make -f Makefile.linux -j2 NATIVE_DTLS_DEBUG=1 all linux-native-smoke linux-mock-stream
       - name: Decode and present synthetic video and audio
         env:
           SDL_AUDIODRIVER: dummy

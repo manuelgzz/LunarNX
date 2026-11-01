@@ -47,7 +47,7 @@ def main():
                 sys.executable, str(ROOT / "tools/mock_xbox/mock_xbox_server.py"),
                 "--video", str(fixture), "--host", "127.0.0.1",
                 "--http-port", "18080", "--public-ip", address,
-                "--cloud-titles", "0"
+                "--cloud-titles", "0", "--debug-webrtc"
             ], cwd=directory, stdout=output, stderr=subprocess.STDOUT, env=environment)
             try:
                 for attempt in range(100):
@@ -78,6 +78,9 @@ def main():
             except Exception:
                 # Logs contain fixture traffic and dummy tokens only.
                 print(server_log.read_text(), file=sys.stderr)
+                diagnostic = directory / "lunarnx.log"
+                if diagnostic.exists():
+                    print(diagnostic.read_text(), file=sys.stderr)
                 if client_log.exists():
                     print(client_log.read_text(), file=sys.stderr)
                 raise
