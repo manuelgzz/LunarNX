@@ -85,3 +85,6 @@ lib/switch/libchiaki.a
 lib/switch/libgf_complete.a
 lib/switch/libjerasure.a
 lib/switch/libprotobuf-nanopb.a
+
+# Generated native PlayStation SDK
+lib/chiaki-native/

@@ -121,3 +121,22 @@ jobs:
             LICENSE
             THIRD_PARTY_NOTICES.md
           if-no-files-found: error
+  native-chiaki:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PlayStation SDK development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make pkg-config libssl-dev libopus-dev libjson-c-dev libminiupnpc-dev libevent-dev protobuf-compiler python3-protobuf
+      - name: Prepare pinned Chiaki and WebSocket curl archives
+        run: python3 scripts/prepare_linux_chiaki.py
+      - name: Build patched native PlayStation SDK
+        run: bash scripts/build_linux_chiaki.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarNX-Linux-Chiaki-build-provenance
+          path: |
+            lib/chiaki-native/LINUX_PROVENANCE.json
+            build/linux-chiaki/lib/include/chiaki/config.h
+          if-no-files-found: error
