@@ -49,6 +49,8 @@ int main(int argc, char** argv) {
         if (!brls::Application::init()) return 1;
         lunar::ui::installLunarTheme();
         brls::Application::createWindow("LunarNX");
+        if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) < 0)
+            throw std::runtime_error("Cannot initialize SDL gamepad support");
         brls::Application::getPlatform()->setThemeVariant(brls::ThemeVariant::DARK);
         brls::Application::setGlobalQuit(false);
         brls::Application::setFPSStatus(false);

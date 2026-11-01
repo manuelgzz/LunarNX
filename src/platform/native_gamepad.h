@@ -24,5 +24,6 @@ inline constexpr uint64_t HidNpadButton_Down = 1ULL << 15;
 }
 uint64_t nativeButtons();
 input::GamepadState nativeGamepad(const input::ButtonMapping& mapping);
+void nativeRumble(float left, float right, float left_trigger, float right_trigger, uint32_t duration);
 void shutdownNativeGamepad();
 } // namespace lunar::platform

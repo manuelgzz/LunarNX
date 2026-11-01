@@ -84,7 +84,7 @@ def main():
             except Exception:
                 # Logs contain fixture traffic and dummy tokens only.
                 print(server_log.read_text(), file=sys.stderr)
-                diagnostic = directory / "lunarnx.log"
+                diagnostic = (directory / "cache/lunarnx/lunarnx.log") if native_ui else (directory / "lunarnx.log")
                 if diagnostic.exists():
                     print(diagnostic.read_text(), file=sys.stderr)
                 if client_log.exists():

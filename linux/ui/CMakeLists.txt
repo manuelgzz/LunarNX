@@ -21,6 +21,7 @@ add_subdirectory("${BOREALIS_LIBRARY}" borealis)
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 pkg_check_modules(NATIVE REQUIRED IMPORTED_TARGET
@@ -65,10 +66,11 @@ target_include_directories(lunarnx_native_core PUBLIC
     "${PEER}/third_party/coreHTTP/source/interface")
 target_link_libraries(lunarnx_native_core PUBLIC
     PkgConfig::NATIVE Threads::Threads ${SCTP_LIB} ${SRTP_LIB}
-    ${mbedtls_LIB} ${mbedx509_LIB} ${mbedcrypto_LIB} OpenGL::GL)
+    ${mbedtls_LIB} ${mbedx509_LIB} ${mbedcrypto_LIB} OpenGL::GL
+    OpenSSL::SSL OpenSSL::Crypto)
 
 set(UI_SOURCES
-    src/platform/linux_main.cpp src/platform/native_gamepad.cpp
+    src/platform/native_gamepad.cpp
     src/input/button_mapping.cpp src/auth/xbox_login_server.cpp
     src/ui/about_activity.cpp src/ui/auth_activity.cpp
     src/ui/button_mapping_activity.cpp src/ui/cloud_game_card.cpp
@@ -79,10 +81,16 @@ set(UI_SOURCES
     src/ui/stream_overlay.cpp src/ui/stream_settings_activity.cpp
     src/ui/stream_view.cpp src/ui/ui_style.cpp)
 list(TRANSFORM UI_SOURCES PREPEND "${ROOT}/")
-add_executable(LunarNX_Linux ${UI_SOURCES})
+add_library(lunarnx_native_views STATIC ${UI_SOURCES})
 file(STRINGS "${ROOT}/version.txt" APP_VERSION LIMIT_COUNT 1)
-target_compile_definitions(LunarNX_Linux PRIVATE LUNARNX_VERSION="${APP_VERSION}")
-target_link_libraries(LunarNX_Linux PRIVATE lunarnx_native_core borealis)
+target_compile_definitions(lunarnx_native_views PRIVATE LUNARNX_VERSION="${APP_VERSION}")
+target_link_libraries(lunarnx_native_views PUBLIC lunarnx_native_core borealis)
+add_executable(LunarNX_Linux "${ROOT}/src/platform/linux_main.cpp")
+target_link_libraries(LunarNX_Linux PRIVATE lunarnx_native_views)
+add_executable(native_ui_settings "${ROOT}/tests/native_ui_settings.cpp")
+target_link_libraries(native_ui_settings PRIVATE lunarnx_native_views)
+enable_testing()
+add_test(NAME native_ui_settings COMMAND native_ui_settings)
 target_compile_options(lunarnx_native_core PUBLIC
     "-idirafter${PEER}/include" "-idirafter${PEER}/include/sys")
 # Resources are installed beside the native executable; main selects that directory.

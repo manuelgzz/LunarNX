@@ -132,6 +132,16 @@ input::GamepadState nativeGamepad(const input::ButtonMapping& mapping) {
     return state;
 }
 
+void nativeRumble(float left, float right, float left_trigger, float right_trigger, uint32_t duration) {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!controller || !SDL_GameControllerGetAttached(controller)) return;
+    auto amplitude = [](float value) {
+        return static_cast<Uint16>(std::clamp(value, 0.0f, 1.0f) * 65535.0f);
+    };
+    SDL_GameControllerRumble(controller, amplitude(left), amplitude(right), duration);
+    SDL_GameControllerRumbleTriggers(controller, amplitude(left_trigger), amplitude(right_trigger), duration);
+}
+
 void shutdownNativeGamepad() {
     std::lock_guard<std::mutex> lock(mutex);
     if (controller) SDL_GameControllerClose(controller);
