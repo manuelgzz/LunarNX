@@ -21,8 +21,8 @@ COMMON_INCLUDES = -Isrc -Ilib \
     $(shell $(PKG_CONFIG) --cflags $(LINUX_PACKAGES))
 
 # Do not filter Linux network interfaces using macOS's en0 name.
-COMMON_DEFINES := $(filter-out -DCONFIG_IFACE_PREFIX=%,$(COMMON_DEFINES))
-COMMON_DEFINES += -DCONFIG_IFACE_PREFIX=\"\"
+COMMON_DEFINES := $(filter-out -DCONFIG_IFACE_PREFIX=% -DCONFIG_USE_USRSCTP=%,$(COMMON_DEFINES))
+COMMON_DEFINES += -DCONFIG_USE_USRSCTP=1 -DCONFIG_IFACE_PREFIX=\"\"
 CXXFLAGS = -std=gnu++17 -O2 -g -Wall -pthread $(COMMON_INCLUDES) $(COMMON_DEFINES)
 CFLAGS = -O2 -g -Wall -pthread $(COMMON_INCLUDES) $(COMMON_DEFINES)
 LDFLAGS = -pthread \
@@ -30,7 +30,7 @@ LDFLAGS = -pthread \
     -Llib/libpeer/third_party/libsrtp/build_host \
     -Llib/libpeer/build/dist/lib \
     $(shell $(PKG_CONFIG) --libs $(LINUX_PACKAGES)) \
-    -lmbedtls -lmbedx509 -lmbedcrypto -lsrtp2
+    -lusrsctp -lsrtp2 -lmbedtls -lmbedx509 -lmbedcrypto $(shell $(PKG_CONFIG) --libs openssl)
 .PHONY: linux-check-dependencies
 linux-check-dependencies:
 	@$(PKG_CONFIG) --exists $(LINUX_PACKAGES) || \
@@ -39,6 +39,7 @@ linux-check-dependencies:
 	    { echo "Prepare the pinned legacy libpeer dependency before the full build." >&2; exit 1; }
 
 all: linux-check-dependencies
+$(CXX_OBJS) $(C_OBJS): | linux-check-dependencies
 
 # Desktop-only diagnostic helpers also need native Linux libraries.
 http_client_cancel_tests:
@@ -63,3 +64,5 @@ rho:
 .PHONY: linux-toolchain-report
 linux-toolchain-report:
 	@printf '%s\n' 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)' 'TARGET=$(TARGET)'
+
+C_SRCS := $(filter-out lib/stubs/chiaki_holepunch_stubs.c,$(C_SRCS))

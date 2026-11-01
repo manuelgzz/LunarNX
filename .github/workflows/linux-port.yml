@@ -4,6 +4,8 @@ on:
     branches: [main, "port/**"]
     paths:
       - "Makefile.linux"
+      - "linux/**"
+      - "scripts/*linux*"
       - "tests/portable/**"
       - "tests/*_test.cpp"
       - "src/**"
@@ -46,3 +48,36 @@ jobs:
               assert flag not in commands, f"Apple-specific flag leaked into Linux: {flag}"
           assert "build/linux/LunarNX_Desktop" in commands
           PY
+  native-runner:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Install native development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev
+      - name: Prepare pinned dependency archives
+        run: python3 scripts/prepare_linux_dependencies.py
+      - name: Build native transport dependencies
+        run: bash scripts/build_linux_dependencies.sh
+      - name: Build complete native runner
+        run: make -f Makefile.linux -j2
+      - name: Focused transport regressions
+        run: |
+          python3 tests/xbox_stream_session_order_test.py
+          python3 tests/libpeer_sctp_config_test.py
+          python3 tests/libpeer_dtls_read_loop_test.py
+          python3 tests/datachannel_ppid_test.py
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarNX-Linux-native-test-runner
+          path: |
+            build/linux/LunarNX_Desktop
+            lib/libpeer/LINUX_PROVENANCE.json
+            LICENSE
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
