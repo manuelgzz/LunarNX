@@ -1011,6 +1011,11 @@ void destroyRetiredTargets(Deko3DRenderContext& s) {
   s.retired_targets.clear();
 }
 
+void releaseShader(CShader& shader) {
+  shader.~CShader();
+  new (&shader) CShader();
+}
+
 void destroyPostProcessTargets(Deko3DRenderContext& s) {
   resetRenderTarget(s.source_target);
   resetRenderTarget(s.upscale_target);
@@ -2264,6 +2269,13 @@ void VideoRenderer::shutdown(){
   if(s->vctx&&s->source_target.texture_slot>=0){s->vctx->freeImageIndex(s->source_target.texture_slot);s->source_target.texture_slot=-1;}
   if(s->vctx&&s->upscale_target.texture_slot>=0){s->vctx->freeImageIndex(s->upscale_target.texture_slot);s->upscale_target.texture_slot=-1;}
   if(s->vctx&&s->rcas_target.texture_slot>=0){s->vctx->freeImageIndex(s->rcas_target.texture_slot);s->rcas_target.texture_slot=-1;}
+  // ~CShader frees its slice through the owning CMemPool. Release shaders
+  // before the pools below; otherwise delete ctx_ later touches a freed pool.
+  releaseShader(s->vs);
+  releaseShader(s->fs);
+  releaseShader(s->blit_fs);
+  releaseShader(s->upscaling_fs);
+  releaseShader(s->rcas_fs);
   s->update_cb={};
   s->present_cb={};
   s->update_ring.reset();
