@@ -129,6 +129,9 @@ jobs:
             build/linux-ui/resources
             lib/borealis/LINUX_PROVENANCE.json
             lib/borealis/LICENSE*
+            lib/chiaki-native/LINUX_PROVENANCE.json
+            lib/chiaki-native/**/COPYING*
+            lib/chiaki-native/**/LICENSE*
             lib/libpeer/LINUX_PROVENANCE.json
             LICENSE
             THIRD_PARTY_NOTICES.md
