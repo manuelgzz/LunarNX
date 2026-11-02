@@ -1,10 +1,14 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_phone_pairing_server.h"
 #include "ps_pairing_account.h"
 #include "../diagnostics.h"
 
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_network.h"
+#endif
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cctype>
@@ -121,7 +125,11 @@ bool formValue(const std::string& body, const std::string& key, std::string& val
 
 std::string sessionToken() {
     unsigned char bytes[16]{};
+#ifdef __SWITCH__
     randomGet(bytes, sizeof(bytes));
+#else
+    if (!platform::nativeRandom(bytes, sizeof(bytes))) return {};
+#endif
     char token[sizeof(bytes) * 2 + 1]{};
     for (size_t i = 0; i < sizeof(bytes); ++i) {
         std::snprintf(token + i * 2, 3, "%02x", bytes[i]);
@@ -207,10 +215,17 @@ PsPhonePairingServer::~PsPhonePairingServer() { stop(); }
 bool PsPhonePairingServer::start(const std::string& locale, Callback callback) {
     stop();
     stopping_.store(false);
-    u32 current_address = 0;
-    if (R_FAILED(nifmGetCurrentIpAddress(&current_address)) || current_address == 0) {
+    uint32_t current_address = 0;
+#ifdef __SWITCH__
+    const bool has_address = R_SUCCEEDED(nifmGetCurrentIpAddress(&current_address)) && current_address != 0;
+#else
+    const auto addresses = platform::nativeIPv4Addresses();
+    if (!addresses.empty()) current_address = addresses.front().address;
+    const bool has_address = current_address != 0;
+#endif
+    if (!has_address) {
         std::lock_guard<std::mutex> lock(mutex_);
-        error_ = "Switch has no local network address";
+        error_ = "No local network address is available";
         return false;
     }
     const int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -239,7 +254,9 @@ bool PsPhonePairingServer::start(const std::string& locale, Callback callback) {
         close(fd);
         return false;
     }
-    const std::string path = "/pair/" + sessionToken();
+    const auto token = sessionToken();
+    if (token.empty()) { close(fd); return false; }
+    const std::string path = "/pair/" + token;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         error_.clear();

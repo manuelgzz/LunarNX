@@ -1,7 +1,9 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_touchpad_reader.h"
+#ifdef __SWITCH__
 #include <switch.h>
+#endif
 #include <algorithm>
 
 namespace lunar::ps {
@@ -25,7 +27,9 @@ uint16_t scaleCoordinate(uint32_t value, uint32_t source_max, uint32_t target_ma
 PsTouchpadReader::PsTouchpadReader(bool ps5) : ps5_(ps5) {
     // Borealis initializes HID during app startup. Enabling the touchscreen
     // here keeps PS-specific input lazy and scoped to an active PS stream.
+#ifdef __SWITCH__
     hidInitializeTouchScreen();
+#endif
 }
 
 PsTouchpadState PsTouchpadReader::currentState(bool pressed) const {
@@ -42,7 +46,7 @@ size_t PsTouchpadReader::activeTouchCount() const {
                          [](const TrackedTouch& touch) { return touch.active; });
 }
 
-void PsTouchpadReader::updateTrackedTouches(const HidTouchScreenState& state) {
+void PsTouchpadReader::updateTrackedTouches(const TouchSnapshot& state) {
     std::array<bool, CHIAKI_CONTROLLER_TOUCHES_MAX> found{};
     const uint32_t max_x = ps5_ ? 1919 : 1920;
     const uint32_t max_y = ps5_ ? 1079 : 942;
@@ -117,8 +121,15 @@ PsTouchpadFeedback PsTouchpadReader::feedback() const {
 
 PsTouchpadState PsTouchpadReader::read(bool suppressed) {
     const auto now = std::chrono::steady_clock::now();
-    HidTouchScreenState state{};
+    TouchSnapshot state{};
+#ifdef __SWITCH__
     const size_t samples = hidGetTouchScreenStates(&state, 1);
+#else
+    const auto touches = platform::nativeTouches();
+    state.count = std::min(touches.size(), state.touches.size());
+    std::copy_n(touches.begin(), state.count, state.touches.begin());
+    const size_t samples = 1;
+#endif
 
     if (suppressed) {
         // Only fence off a touch that was already in progress when the UI
@@ -184,7 +195,7 @@ PsTouchpadState PsTouchpadReader::read(bool suppressed) {
         }
     }
 
-    const HidTouchState* primary = nullptr;
+    const TouchSample* primary = nullptr;
     for (size_t i = 0; i < count; ++i) {
         if (state.touches[i].finger_id == primary_finger_id_) {
             primary = &state.touches[i];
@@ -235,7 +246,7 @@ PsTouchpadState PsTouchpadReader::read(bool suppressed) {
 
     for (const auto& tracked : touches_) {
         if (!tracked.active) continue;
-        const HidTouchState* input = nullptr;
+        const TouchSample* input = nullptr;
         for (size_t i = 0; i < count; ++i) {
             if (state.touches[i].finger_id == tracked.finger_id) {
                 input = &state.touches[i];

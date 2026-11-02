@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_activity.h"
 #include "ps_registration_activity.h"
 #include "psn_login_activity.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_connection_plan.h"
 #include "ps_connection_trace.h"

@@ -134,4 +134,55 @@ void PsMotionReader::reset() {
 
 } // namespace lunar::ps
 
+#elif defined(LUNARNX_NATIVE_UI)
+#include "ps_motion_reader.h"
+#include "../platform/native_gamepad.h"
+#include <chiaki/orientation.h>
+#include <chrono>
+#include <cmath>
+#include <new>
+
+namespace lunar::ps {
+struct PsMotionReader::Impl {
+    ChiakiOrientation orientation{};
+    std::chrono::steady_clock::time_point previous{};
+};
+PsMotionReader::PsMotionReader() = default;
+PsMotionReader::~PsMotionReader() { delete impl_; }
+bool PsMotionReader::initialize() {
+    if (!impl_) impl_ = new (std::nothrow) Impl;
+    if (!impl_) return false;
+    reset();
+    return true;
+}
+void PsMotionReader::reset() {
+    if (!impl_) return;
+    chiaki_orientation_init(&impl_->orientation);
+    impl_->previous = {};
+}
+PsMotionState PsMotionReader::read(bool suppressed) {
+    PsMotionState state{};
+    if (suppressed) { reset(); return state; }
+    if (!impl_) return state;
+    const auto sample = platform::nativeMotion();
+    if (!sample.valid) { reset(); return state; }
+    for (float value : sample.gyro) if (!std::isfinite(value)) return state;
+    for (float value : sample.accel) if (!std::isfinite(value)) return state;
+    // SDL uses rad/s and m/s² in controller coordinates; Chiaki uses g.
+    state.gyro_x = sample.gyro[0]; state.gyro_y = sample.gyro[1]; state.gyro_z = sample.gyro[2];
+    state.accel_x = sample.accel[0] / 9.80665f;
+    state.accel_y = sample.accel[1] / 9.80665f;
+    state.accel_z = sample.accel[2] / 9.80665f;
+    const auto now = std::chrono::steady_clock::now();
+    const float elapsed = std::chrono::duration<float>(now - impl_->previous).count();
+    if (impl_->previous.time_since_epoch().count() && elapsed > 0 && elapsed < 0.1f)
+        chiaki_orientation_update(&impl_->orientation, state.gyro_x, state.gyro_y, state.gyro_z,
+            state.accel_x, state.accel_y, state.accel_z, 0.1f, elapsed);
+    impl_->previous = now;
+    state.orient_x = impl_->orientation.x; state.orient_y = impl_->orientation.y;
+    state.orient_z = impl_->orientation.z; state.orient_w = impl_->orientation.w;
+    state.valid = true;
+    return state;
+}
+} // namespace lunar::ps
 #endif

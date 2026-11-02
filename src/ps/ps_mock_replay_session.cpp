@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_mock_replay_session.h"
 
@@ -19,6 +19,7 @@ extern "C" {
 #include <cstdio>
 #include <cstring>
 #include <memory>
+#include <cstdlib>
 
 #ifndef LUNARNX_PS_MOCK_REPLAY
 #define LUNARNX_PS_MOCK_REPLAY 0
@@ -63,7 +64,12 @@ struct Demuxer {
     }
 
     bool open(stream::VideoCodec expected_codec) {
+#ifdef LUNARNX_NATIVE_UI
+        const char* fixture = std::getenv("LUNARNX_PS_REPLAY_FIXTURE");
+        FILE* input = fixture && *fixture ? std::fopen(fixture, "rb") : nullptr;
+#else
         FILE* input = std::fopen(kFixturePath, "rb");
+#endif
         if (!input) return false;
         std::fseek(input, 0, SEEK_END);
         const long length = std::ftell(input);
@@ -148,7 +154,10 @@ bool configSelectsMockReplay() {
 } // namespace
 
 bool psMockReplayEnabled() {
-#if LUNARNX_PS_MOCK_REPLAY
+#ifdef LUNARNX_NATIVE_UI
+    const char* fixture = std::getenv("LUNARNX_PS_REPLAY_FIXTURE");
+    return fixture && *fixture;
+#elif LUNARNX_PS_MOCK_REPLAY
     return configSelectsMockReplay();
 #else
     return false;

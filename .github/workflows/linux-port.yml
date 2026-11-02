@@ -62,7 +62,7 @@ jobs:
       - name: Install native development packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev libavformat-dev ffmpeg xvfb xauth libgl1-mesa-dri libgl1-mesa-dev libswscale-dev
+          sudo apt-get install -y cmake g++ make pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev libavformat-dev ffmpeg xvfb xauth libgl1-mesa-dri libgl1-mesa-dev libswscale-dev libjson-c-dev libminiupnpc-dev libevent-dev protobuf-compiler python3-protobuf
       - name: Prepare pinned dependency archives
         run: python3 scripts/prepare_linux_dependencies.py
       - name: Build native transport dependencies
@@ -85,6 +85,8 @@ jobs:
           build/mock-venv/bin/python scripts/linux_mock_smoke.py
       - name: Prepare Borealis native UI sources
         run: python3 scripts/prepare_linux_ui.py
+      - name: Prepare native PlayStation SDK sources
+        run: python3 scripts/prepare_linux_chiaki.py
       - name: Build original LunarNX UI for Linux
         run: |
           cmake -S linux/ui -B build/linux-ui -DCMAKE_BUILD_TYPE=Release

@@ -2,11 +2,7 @@
 #include "platform_activity.h"
 #include "auth_activity.h"
 #include "main_activity.h"
-#ifdef __SWITCH__
 #include "ps_activity.h"
-#else
-#include "ps_settings_activity.h"
-#endif
 #include "about_activity.h"
 #include "stream_settings_activity.h"
 #include "grid_navigation.h"
@@ -235,18 +231,13 @@ void PlatformActivity::openXbox() {
 
 void PlatformActivity::openPlayStation() {
     diagnosticLog("ui-platform", "PlayStation navigation begin");
-#ifdef __SWITCH__
     auto* ps_activity = new PsActivity();
     diagnosticLog("ui-platform", "PsActivity constructed");
     brls::Application::pushActivity(
         ps_activity,
         brls::TransitionAnimation::NONE);
     diagnosticLog("ui-platform", "PlayStation navigation complete");
-#else
-    brls::Application::pushActivity(new PsSettingsActivity(loadPsSettings(), {}),
-                                    brls::TransitionAnimation::NONE);
-    brls::Application::notify("PlayStation connection is not available in this development build.");
-#endif
+
 }
 
 } // namespace lunar::ui

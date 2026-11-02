@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_stream_controller.h"
 #include "ps_media_bridge.h"
@@ -64,7 +64,11 @@ PsStreamController::PsStreamController(const PsConnectionPlan& plan,
     , bitrate_kbps_(bitrate_kbps)
     , video_codec_(plan.isPs5()
           ? video_codec : stream::VideoCodec::H264)
+#ifdef LUNARNX_NATIVE_UI
+    , video_backend_(stream::VideoBackend::Software) {}
+#else
     , video_backend_(stream::VideoBackend::HardwareZeroCopy) {}
+#endif
 
 PsStreamController::~PsStreamController() {
     requestCancel();

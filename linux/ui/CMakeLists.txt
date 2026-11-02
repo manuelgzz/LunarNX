@@ -19,13 +19,32 @@ include("${BOREALIS_LIBRARY}/cmake/commonOption.cmake")
 include("${BOREALIS_LIBRARY}/cmake/toolchain.cmake")
 add_subdirectory("${BOREALIS_LIBRARY}" borealis)
 
+# Build the matching Chiaki SDK in this graph so its headers, ABI and curl
+# implementation cannot drift from the library linked into the interface.
+foreach(feature IN ITEMS TESTS CLI GUI BOREALIS FFMPEG_DECODER PI_DECODER
+        SETSU SPEEX STEAMDECK_NATIVE STEAM_SHORTCUT)
+    set(CHIAKI_ENABLE_${feature} OFF CACHE BOOL "" FORCE)
+endforeach()
+set(CHIAKI_ENABLE_RUDP ON CACHE BOOL "" FORCE)
+set(CHIAKI_LIB_ENABLE_OPUS ON CACHE BOOL "" FORCE)
+set(CHIAKI_LIB_ENABLE_LIBNX_CRYPTO OFF CACHE BOOL "" FORCE)
+set(CHIAKI_USE_SYSTEM_CURL OFF CACHE BOOL "" FORCE)
+set(CHIAKI_USE_SYSTEM_NANOPB OFF CACHE BOOL "" FORCE)
+set(CHIAKI_USE_SYSTEM_JERASURE OFF CACHE BOOL "" FORCE)
+set(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT OFF CACHE BOOL "" FORCE)
+set(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT OFF CACHE BOOL "" FORCE)
+set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)
+add_subdirectory("${ROOT}/lib/chiaki-native" chiaki)
+target_compile_definitions(chiaki-lib PRIVATE
+    LUNARNX_CHIAKI_RECV_OPT=1 LUNARNX_CHIAKI_TRANSPORT_DIAG=0)
+
 find_package(PkgConfig REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 pkg_check_modules(NATIVE REQUIRED IMPORTED_TARGET
-    sdl2 libavcodec libavutil libswresample libswscale opus libcurl openssl)
+    sdl2 libavcodec libavutil libavformat libswresample libswscale opus openssl)
 foreach(name IN ITEMS mbedtls mbedx509 mbedcrypto)
     find_library(${name}_LIB NAMES ${name}
         PATHS "${PEER}/third_party/mbedtls/build_host/library" NO_DEFAULT_PATH REQUIRED)
@@ -65,11 +84,39 @@ target_include_directories(lunarnx_native_core PUBLIC
     "${PEER}/build/dist/include" "${PEER}/build/dist/include/srtp2"
     "${PEER}/third_party/coreHTTP/source/interface")
 target_link_libraries(lunarnx_native_core PUBLIC
-    PkgConfig::NATIVE Threads::Threads ${SCTP_LIB} ${SRTP_LIB}
+    PkgConfig::NATIVE CURL::libcurl Threads::Threads ${SCTP_LIB} ${SRTP_LIB}
     ${mbedtls_LIB} ${mbedx509_LIB} ${mbedcrypto_LIB} OpenGL::GL
     OpenSSL::SSL OpenSSL::Crypto)
 
 set(UI_SOURCES
+    src/ui/ps_activity.cpp src/ui/ps_registration_activity.cpp src/ui/psn_login_activity.cpp
+    src/ps/chiaki_crypto_init.cpp
+    src/ps/chiaki_log_adapter.cpp
+    src/ps/ps_connection_plan.cpp
+    src/ps/ps_connection_trace.cpp
+    src/ps/ps_console_repository.cpp
+    src/ps/ps_credentials.cpp
+    src/ps/ps_discovery.cpp
+    src/ps/ps_haptics_rumble.cpp
+    src/ps/ps_input_mapper.cpp
+    src/ps/ps_manager.cpp
+    src/ps/ps_media_bridge.cpp
+    src/ps/ps_mock_replay_session.cpp
+    src/ps/ps_motion_reader.cpp
+    src/ps/ps_pairing_account.cpp
+    src/ps/ps_pairing_account_codec.cpp
+    src/ps/ps_pairing_account_store.cpp
+    src/ps/ps_phone_pairing_server.cpp
+    src/ps/ps_registration.cpp
+    src/ps/ps_registration_diagnostics.cpp
+    src/ps/ps_remote_connector.cpp
+    src/ps/ps_route_preferences.cpp
+    src/ps/ps_stream_controller.cpp
+    src/ps/ps_stream_session.cpp
+    src/ps/ps_touchpad_reader.cpp
+    src/ps/psn_auth_manager.cpp
+    src/ps/psn_auth_utils.cpp
+    src/ps/psn_callback_server.cpp
     src/platform/native_gamepad.cpp
     src/input/button_mapping.cpp src/auth/xbox_login_server.cpp
     src/ui/about_activity.cpp src/ui/auth_activity.cpp
@@ -84,7 +131,7 @@ list(TRANSFORM UI_SOURCES PREPEND "${ROOT}/")
 add_library(lunarnx_native_views STATIC ${UI_SOURCES})
 file(STRINGS "${ROOT}/version.txt" APP_VERSION LIMIT_COUNT 1)
 target_compile_definitions(lunarnx_native_views PRIVATE LUNARNX_VERSION="${APP_VERSION}")
-target_link_libraries(lunarnx_native_views PUBLIC lunarnx_native_core borealis)
+target_link_libraries(lunarnx_native_views PUBLIC lunarnx_native_core borealis chiaki-lib)
 add_executable(LunarNX_Linux "${ROOT}/src/platform/linux_main.cpp")
 target_link_libraries(LunarNX_Linux PRIVATE lunarnx_native_views)
 add_executable(native_ui_settings "${ROOT}/tests/native_ui_settings.cpp")

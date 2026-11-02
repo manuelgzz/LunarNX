@@ -1,9 +1,13 @@
 #pragma once
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_input_mapper.h"
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_gamepad.h"
+#endif
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -47,12 +51,22 @@ private:
     };
 
     PsTouchpadState currentState(bool pressed) const;
-    void updateTrackedTouches(const HidTouchScreenState& state);
+#ifdef __SWITCH__
+    using TouchSample = HidTouchState;
+    using TouchSnapshot = HidTouchScreenState;
+#else
+    using TouchSample = platform::NativeTouch;
+    struct TouchSnapshot {
+        size_t count = 0;
+        std::array<TouchSample, CHIAKI_CONTROLLER_TOUCHES_MAX> touches{};
+    };
+#endif
+    void updateTrackedTouches(const TouchSnapshot& state);
     size_t activeTouchCount() const;
 
     struct TrackedTouch {
         bool active = false;
-        uint32_t finger_id = 0;
+        uint64_t finger_id = 0;
         uint32_t down_x = 0;
         uint32_t down_y = 0;
         uint16_t screen_x = 0;
@@ -63,10 +77,10 @@ private:
 
     bool ps5_ = false;
     bool blocked_until_release_ = false;
-    uint32_t blocked_finger_id_ = 0;
+    uint64_t blocked_finger_id_ = 0;
     GestureState gesture_ = GestureState::Idle;
     std::array<TrackedTouch, CHIAKI_CONTROLLER_TOUCHES_MAX> touches_{};
-    uint32_t primary_finger_id_ = 0;
+    uint64_t primary_finger_id_ = 0;
     uint32_t max_distance_squared_ = 0;
     bool had_multiple_touches_ = false;
     bool release_was_long_press_ = false;

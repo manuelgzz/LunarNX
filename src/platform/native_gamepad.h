@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <array>
+#include <vector>
 #include "../input/gamepad_reader.h"
 
 namespace lunar::platform {
@@ -22,6 +24,16 @@ inline constexpr uint64_t HidNpadButton_Up = 1ULL << 13;
 inline constexpr uint64_t HidNpadButton_Right = 1ULL << 14;
 inline constexpr uint64_t HidNpadButton_Down = 1ULL << 15;
 }
+struct NativeTouch {
+    uint64_t finger_id;
+    uint32_t x, y;
+};
+struct NativeMotion {
+    bool valid = false;
+    std::array<float, 3> gyro{}, accel{};
+};
+std::vector<NativeTouch> nativeTouches();
+NativeMotion nativeMotion();
 uint64_t nativeButtons();
 input::GamepadState nativeGamepad(const input::ButtonMapping& mapping);
 void nativeRumble(float left, float right, float left_trigger, float right_trigger, uint32_t duration);

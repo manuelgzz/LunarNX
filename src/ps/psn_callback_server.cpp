@@ -1,9 +1,13 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "psn_callback_server.h"
 #include "../diagnostics.h"
 
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_network.h"
+#endif
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cctype>
@@ -122,7 +126,11 @@ bool formDecode(const std::string& value, std::string& decoded) {
 
 std::string sessionToken() {
     unsigned char bytes[16]{};
+#ifdef __SWITCH__
     randomGet(bytes, sizeof(bytes));
+#else
+    if (!platform::nativeRandom(bytes, sizeof(bytes))) return {};
+#endif
     char token[sizeof(bytes) * 2 + 1]{};
     for (size_t i = 0; i < sizeof(bytes); ++i) {
         std::snprintf(token + i * 2, 3, "%02x", bytes[i]);
@@ -225,11 +233,17 @@ bool PsnCallbackServer::start(const std::string& login_url,
         error_.clear();
     }
 
-    u32 current_address = 0;
-    Result rc = nifmGetCurrentIpAddress(&current_address);
-    if (R_FAILED(rc) || current_address == 0) {
+    uint32_t current_address = 0;
+#ifdef __SWITCH__
+    const bool has_address = R_SUCCEEDED(nifmGetCurrentIpAddress(&current_address)) && current_address != 0;
+#else
+    const auto addresses = platform::nativeIPv4Addresses();
+    if (!addresses.empty()) current_address = addresses.front().address;
+    const bool has_address = current_address != 0;
+#endif
+    if (!has_address) {
         std::lock_guard<std::mutex> lock(mutex_);
-        error_ = "Switch has no local network address";
+        error_ = "No local network address is available";
         return false;
     }
 
@@ -267,11 +281,12 @@ bool PsnCallbackServer::start(const std::string& login_url,
     if (!inet_ntop(AF_INET, &local_address, ip, sizeof(ip))) {
         close(fd);
         std::lock_guard<std::mutex> lock(mutex_);
-        error_ = "Could not determine the Switch network address";
+        error_ = "Could not determine the local network address";
         return false;
     }
 
     const std::string session_id = sessionToken();
+    if (session_id.empty()) { close(fd); return false; }
     const std::string session_path = "/psn/" + session_id;
     const std::string session_login_url = login_url + "&state=" + session_id;
     {

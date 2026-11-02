@@ -72,7 +72,8 @@ public:
         // SDL controller output must be serviced on the UI thread, including
         // intervals without a newly decoded frame. Stop before worker teardown.
         if (terminal_stop_->load()) return;
-        runtime_->update();
+        if (runtime_->getStreamPlatform() == app::StreamPlatform::Xbox)
+            runtime_->update();
 #endif
 
         nvgBeginPath(vg);

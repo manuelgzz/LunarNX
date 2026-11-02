@@ -1,9 +1,13 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_discovery.h"
 #include <arpa/inet.h>
 #include <cstring>
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include "../platform/native_network.h"
+#endif
 
 namespace lunar::ps {
 namespace {
@@ -56,7 +60,8 @@ bool PsDiscovery::start(const std::vector<std::string>& manual_hosts,
 
     // 255.255.255.255 is filtered by some APs. Add the subnet-directed
     // broadcast used by chiaki-ng's Switch discovery implementation.
-    sockaddr_storage directed_broadcast{};
+    std::vector<sockaddr_storage> directed_broadcasts;
+#ifdef __SWITCH__
     uint32_t current_ip = 0;
     uint32_t subnet_mask = 0;
     Result nifm_result = nifmInitialize(NifmServiceType_User);
@@ -66,10 +71,22 @@ bool PsDiscovery::start(const std::vector<std::string>& manual_hosts,
         nifmExit();
     }
     if (R_SUCCEEDED(nifm_result) && subnet_mask != 0) {
-        auto* directed = reinterpret_cast<sockaddr_in*>(&directed_broadcast);
+        sockaddr_storage value{};
+        auto* directed = reinterpret_cast<sockaddr_in*>(&value);
         directed->sin_family = AF_INET;
         directed->sin_addr.s_addr = current_ip | ~subnet_mask;
+        directed_broadcasts.push_back(value);
     }
+#else
+    for (const auto& address : platform::nativeIPv4Addresses()) {
+        if (!address.netmask) continue;
+        sockaddr_storage value{};
+        auto* directed = reinterpret_cast<sockaddr_in*>(&value);
+        directed->sin_family = AF_INET;
+        directed->sin_addr.s_addr = address.address | ~address.netmask;
+        directed_broadcasts.push_back(value);
+    }
+#endif
 
     ChiakiDiscoveryServiceOptions options{};
     options.hosts_max = 16;
@@ -78,9 +95,9 @@ bool PsDiscovery::start(const std::vector<std::string>& manual_hosts,
     options.ping_initial_ms = 0;
     options.send_addr = &send_addr;
     options.send_addr_size = sizeof(broadcast);
-    if (directed_broadcast.ss_family == AF_INET) {
-        options.broadcast_addrs = &directed_broadcast;
-        options.broadcast_num = 1;
+    if (!directed_broadcasts.empty()) {
+        options.broadcast_addrs = directed_broadcasts.data();
+        options.broadcast_num = directed_broadcasts.size();
     }
     options.cb = onHostsDiscovered;
     options.cb_user = this;

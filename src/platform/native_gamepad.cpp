@@ -142,6 +142,51 @@ void nativeRumble(float left, float right, float left_trigger, float right_trigg
     SDL_GameControllerRumbleTriggers(controller, amplitude(left_trigger), amplitude(right_trigger), duration);
 }
 
+std::vector<NativeTouch> nativeTouches() {
+    std::lock_guard<std::mutex> lock(mutex);
+    std::vector<NativeTouch> result;
+    rawState(); // Lazily opens or refreshes the current controller.
+    auto coordinate = [](float value, uint32_t maximum) {
+        return static_cast<uint32_t>(std::clamp(value, 0.0f, 1.0f) * maximum);
+    };
+    if (controller && SDL_GameControllerGetNumTouchpads(controller) > 0) {
+        for (int finger = 0; finger < SDL_GameControllerGetNumTouchpadFingers(controller, 0); ++finger) {
+            Uint8 active = 0;
+            float x = 0, y = 0, pressure = 0;
+            if (SDL_GameControllerGetTouchpadFinger(controller, 0, finger, &active, &x, &y, &pressure) == 0 && active)
+                result.push_back({static_cast<uint64_t>(finger), coordinate(x, 1279), coordinate(y, 719)});
+        }
+        // Prefer the physical controller touchpad when it is in use.
+        if (!result.empty()) return result;
+    }
+    // SDL touch snapshots are updated by Borealis' main event loop.
+    for (int device = 0; device < SDL_GetNumTouchDevices(); ++device) {
+        const auto id = SDL_GetTouchDevice(device);
+        for (int index = 0; index < SDL_GetNumTouchFingers(id); ++index) {
+            const auto* finger = SDL_GetTouchFinger(id, index);
+            if (finger) result.push_back({static_cast<uint64_t>(finger->id),
+                coordinate(finger->x, 1279), coordinate(finger->y, 719)});
+        }
+        if (!result.empty()) break;
+    }
+    return result;
+}
+
+NativeMotion nativeMotion() {
+    std::lock_guard<std::mutex> lock(mutex);
+    NativeMotion result;
+    rawState();
+    if (!controller ||
+        !SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO) ||
+        !SDL_GameControllerHasSensor(controller, SDL_SENSOR_ACCEL)) return result;
+    for (auto sensor : {SDL_SENSOR_GYRO, SDL_SENSOR_ACCEL})
+        if (!SDL_GameControllerIsSensorEnabled(controller, sensor) &&
+            SDL_GameControllerSetSensorEnabled(controller, sensor, SDL_TRUE) < 0) return result;
+    result.valid = SDL_GameControllerGetSensorData(controller, SDL_SENSOR_GYRO, result.gyro.data(), 3) == 0 &&
+                   SDL_GameControllerGetSensorData(controller, SDL_SENSOR_ACCEL, result.accel.data(), 3) == 0;
+    return result;
+}
+
 void shutdownNativeGamepad() {
     std::lock_guard<std::mutex> lock(mutex);
     if (controller) SDL_GameControllerClose(controller);

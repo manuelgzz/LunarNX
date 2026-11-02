@@ -14,6 +14,7 @@
 #include "../ui/platform_activity.h"
 #include "../ui/stream_settings_activity.h"
 #include "../ui/ps_settings_activity.h"
+#include "../ui/ps_activity.h"
 #include "../ui/button_mapping_activity.h"
 #include "../ui/stream_loading_activity.h"
 #include "../ui/i18n.h"
@@ -95,9 +96,11 @@ int main(int argc, char** argv) {
                     new lunar::ui::StreamSettingsActivity(nullptr,
                         lunar::ui::loadStreamSettings(), {}, lunar::ui::StreamSettingsScope::Xbox));
                 if (frames == 165) brls::Application::popActivity(brls::TransitionAnimation::NONE);
-                if (frames == 180) {
+                if (frames == 180) brls::Application::pushActivity(new lunar::ui::PsActivity(), brls::TransitionAnimation::NONE);
+                if (frames == 220) brls::Application::popActivity(brls::TransitionAnimation::NONE);
+                if (frames == 240) {
                     passed = windowCount() == 1;
-                    std::printf("%s native UI: home, global, Xbox, PlayStation and mapping settings; windows=%d\n",
+                    std::printf("%s native UI: home, global, Xbox, PlayStation consoles and mapping settings; windows=%d\n",
                                 passed ? "PASS" : "FAIL", windowCount());
                     brls::Application::quit();
                 }
