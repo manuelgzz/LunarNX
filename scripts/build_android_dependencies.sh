@@ -8,6 +8,10 @@ prefix="$project_root/build/android-prefix"
 sources="$project_root/lib/android-sources"
 peer="$project_root/lib/libpeer"
 mkdir -p "$prefix"
+if [ -f "$prefix/.lunarnx-complete" ]; then
+    echo "Reusing completed ARM64 dependencies from the matching cache"
+    exit 0
+fi
 export PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig"
 export PKG_CONFIG_PATH=""
 toolchain="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake"
@@ -58,3 +62,5 @@ mkdir -p "$prefix/lib/pkgconfig"
 if [ -d "$prefix/lib64/pkgconfig" ]; then
     cp "$prefix/lib64/pkgconfig/"*.pc "$prefix/lib/pkgconfig/"
 fi
+
+touch "$prefix/.lunarnx-complete"

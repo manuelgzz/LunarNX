@@ -8,18 +8,24 @@ from prepare_linux_dependencies import ROOT, unpack
 
 def main():
     destination = ROOT / "lib/android-sources"
-    if destination.exists():
-        raise SystemExit("lib/android-sources already exists; existing sources were not modified")
     provenance = []
     lock = json.loads((ROOT / "android/dependencies.lock.json").read_text())
-    with tempfile.TemporaryDirectory(prefix=".android-deps-", dir=destination.parent) as folder:
-        stage = Path(folder) / "sources"
-        stage.mkdir()
-        for item in lock["dependencies"]:
-            digest = unpack(item["repository"], item["revision"], stage / item["directory"])
-            provenance.append({**item, "archive_sha256": digest})
-        (stage / "ANDROID_PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
-        stage.rename(destination)
+    if destination.exists():
+        import sys
+        if "--reuse-prepared" not in sys.argv:
+            raise SystemExit("lib/android-sources already exists; use --reuse-prepared for a verified CI cache")
+        existing = json.loads((destination / "ANDROID_PROVENANCE.json").read_text())
+        if [{key: item[key] for key in ("repository", "revision", "tag", "directory")} for item in existing] != lock["dependencies"]:
+            raise SystemExit("Prepared Android dependency revisions do not match the lock")
+    else:
+        with tempfile.TemporaryDirectory(prefix=".android-deps-", dir=destination.parent) as folder:
+            stage = Path(folder) / "sources"
+            stage.mkdir()
+            for item in lock["dependencies"]:
+                digest = unpack(item["repository"], item["revision"], stage / item["directory"])
+                provenance.append({**item, "archive_sha256": digest})
+            (stage / "ANDROID_PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
+            stage.rename(destination)
     generated = ROOT / "android/app/generated"
     java = generated / "java/org/libsdl/app"
     java.mkdir(parents=True, exist_ok=True)
@@ -35,7 +41,7 @@ def main():
     subprocess.run(["python3", str(ROOT / "scripts/generate_changelog_resource.py"),
                     str(ROOT / "CHANGELOG.md"), str(assets / "changelog.json")], check=True)
     licenses = assets / "licenses"
-    licenses.mkdir()
+    licenses.mkdir(exist_ok=True)
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         shutil.copy2(ROOT / name, licenses)
     for dependency in (ROOT / "lib/libpeer", borealis, ROOT / "lib/chiaki-native", destination):

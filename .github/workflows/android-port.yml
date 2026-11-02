@@ -20,6 +20,7 @@ jobs:
       PKG_CONFIG_LIBDIR: ${{ github.workspace }}/build/android-prefix/lib/pkgconfig
       PKG_CONFIG_PATH: ""
       CMAKE_BUILD_PARALLEL_LEVEL: "2"
+      CCACHE_DIR: ${{ github.workspace }}/build/android-ccache
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 2}
@@ -32,14 +33,27 @@ jobs:
       - name: Install native build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build g++ make pkg-config protobuf-compiler python3-protobuf perl nasm
+          sudo apt-get install -y cmake ninja-build g++ make pkg-config protobuf-compiler python3-protobuf perl nasm ccache
           sdkmanager "ndk;28.2.13676358" "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1"
+      - uses: actions/cache/restore@v4
+        id: android-cache
+        with:
+          path: |
+            lib/libpeer
+            lib/borealis
+            lib/chiaki-native
+            lib/android-sources
+            build/android-prefix
+            build/android-deps
+            build/android-ccache
+          key: android-arm64-v1-${{ hashFiles('android/dependencies.lock.json', 'linux/*dependencies.lock.json', 'scripts/build_android_dependencies.sh', 'tools/libpeer_legacy/**', 'tools/chiaki_switch/*.patch') }}-${{ github.run_id }}
+          restore-keys: android-arm64-v1-${{ hashFiles('android/dependencies.lock.json', 'linux/*dependencies.lock.json', 'scripts/build_android_dependencies.sh', 'tools/libpeer_legacy/**', 'tools/chiaki_switch/*.patch') }}-
       - name: Prepare pinned source archives
         run: |
-          python3 scripts/prepare_linux_dependencies.py
-          python3 scripts/prepare_linux_ui.py
-          python3 scripts/prepare_linux_chiaki.py
-          python3 scripts/prepare_android_dependencies.py
+          test -f lib/libpeer/LINUX_PROVENANCE.json || python3 scripts/prepare_linux_dependencies.py
+          test -f lib/borealis/LINUX_PROVENANCE.json || python3 scripts/prepare_linux_ui.py
+          test -f lib/chiaki-native/LINUX_PROVENANCE.json || python3 scripts/prepare_linux_chiaki.py
+          python3 scripts/prepare_android_dependencies.py --reuse-prepared
       - name: Cross-compile ARM64 dependencies
         run: bash scripts/build_android_dependencies.sh
       - name: Assemble installable development APK
@@ -60,3 +74,15 @@ jobs:
             build/packages/LunarNX-Android-corresponding-source.tar.gz
             lib/android-sources/ANDROID_PROVENANCE.json
           if-no-files-found: error
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            lib/libpeer
+            lib/borealis
+            lib/chiaki-native
+            lib/android-sources
+            build/android-prefix
+            build/android-deps
+            build/android-ccache
+          key: ${{ steps.android-cache.outputs.cache-primary-key }}
