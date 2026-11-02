@@ -26,6 +26,16 @@ def main():
                 provenance.append({**item, "archive_sha256": digest})
             (stage / "ANDROID_PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
             stage.rename(destination)
+    # mbedTLS 3.4's AESCE intrinsics are incompatible with NDK 28's Clang.
+    # Use its portable AES implementation; SRTP still uses native OpenSSL.
+    config = ROOT / "lib/libpeer/third_party/mbedtls/include/mbedtls/mbedtls_config.h"
+    original = config.read_text()
+    import re
+    portable = re.sub(r"^#define MBEDTLS_AESCE_C\\s*$",
+                      "/* Android NDK: use portable mbedTLS AES. */", original, flags=re.MULTILINE)
+    if portable != original:
+        config.write_text(portable)
+        (ROOT / "build/android-prefix/.lunarnx-complete").unlink(missing_ok=True)
     generated = ROOT / "android/app/generated"
     java = generated / "java/org/libsdl/app"
     java.mkdir(parents=True, exist_ok=True)
