@@ -119,7 +119,8 @@ add_library(lunarnx_native_core STATIC ${CORE_SOURCES})
 target_compile_definitions(lunarnx_native_core PUBLIC
     $<$<NOT:$<BOOL:${ANDROID}>>:PLATFORM_DESKTOP> LUNARNX_NATIVE_UI
     CONFIG_USE_LWIP=0 CONFIG_USE_USRSCTP=1 CONFIG_DTLS_USE_ECDSA=1
-    CONFIG_IFACE_PREFIX="" CONFIG_IPV6=1)
+    CONFIG_IFACE_PREFIX="" CONFIG_IPV6=1
+    LUNARNX_CURL_FORCE_MBEDTLS=0 LUNARNX_CURL_PROVIDER="OpenSSL")
 target_include_directories(lunarnx_native_core PUBLIC
     "${ROOT}/src" "${ROOT}/lib"
     $<$<BOOL:${ANDROID}>:${ANDROID_PREFIX}/include>
@@ -191,12 +192,17 @@ endif()
 target_compile_options(lunarnx_native_core PUBLIC
     "-idirafter${PEER}/include" "-idirafter${PEER}/include/sys")
 if(NOT ANDROID)
+add_executable(native_http_probe "${ROOT}/tests/native_http_probe.cpp")
+target_link_libraries(native_http_probe PRIVATE lunarnx_native_core)
+add_executable(auth_ui_transport_test "${ROOT}/tests/auth_ui_test.cpp")
+target_link_libraries(auth_ui_transport_test PRIVATE lunarnx_native_views)
 add_executable(native_ui_settings "${ROOT}/tests/native_ui_settings.cpp")
 target_link_libraries(native_ui_settings PRIVATE lunarnx_native_views)
 add_executable(native_ps_services "${ROOT}/tests/native_ps_services.cpp")
 target_link_libraries(native_ps_services PRIVATE lunarnx_native_views)
 target_compile_options(native_ps_services PRIVATE -UNDEBUG)
 enable_testing()
+add_test(NAME auth_ui_transport COMMAND auth_ui_transport_test)
 add_test(NAME native_ps_services COMMAND native_ps_services)
 set_tests_properties(native_ps_services PROPERTIES TIMEOUT 30)
 add_test(NAME native_ui_settings COMMAND native_ui_settings)

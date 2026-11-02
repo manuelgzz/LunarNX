@@ -138,7 +138,7 @@ bool AuthManager::startDeviceCodeAuth() {
 
     if (resp.status_code != 200) {
         last_error_ = resp.network_error
-            ? "Network error. Check WiFi and try again."
+            ? describeXboxNetworkFailure("Could not request the Microsoft sign-in code.", resp.error_message)
             : "Failed to get sign-in code. HTTP " + std::to_string(resp.status_code) + ".";
         fprintf(stderr, "[auth] Device code request failed: HTTP %d\n", resp.status_code);
         lunar::diagnosticLog("auth", "Device code request failed status=%d network=%s error=%s",
@@ -284,7 +284,7 @@ DeviceCodePollResult AuthManager::pollForTokenResult() {
     }
 
     last_error_ = resp.network_error
-        ? "Network error while waiting for sign-in. Check WiFi and try again."
+        ? describeXboxNetworkFailure("Could not check Microsoft sign-in.", resp.error_message)
         : "Sign-in failed. HTTP " + std::to_string(resp.status_code) + ". Press Start to try again.";
     fprintf(stderr, "[auth] Token poll error: HTTP %d\n", resp.status_code);
     lunar::diagnosticLog("auth", "Token poll failed status=%d network=%s error=%s",
@@ -343,7 +343,7 @@ bool AuthManager::stepGetStreamingTokens(CancelCallback cancel) {
 
     if (resp.status_code != 200) {
         last_error_ = resp.network_error
-            ? "Network error while getting Xbox user token. Check WiFi and try again."
+            ? describeXboxNetworkFailure("Could not get the Xbox user token.", resp.error_message)
             : "Xbox user token request failed. HTTP " + std::to_string(resp.status_code) + ".";
         fprintf(stderr, "[auth] RPS auth failed: HTTP %d\n", resp.status_code);
         lunar::diagnosticLog("auth", "RPS auth failed status=%d network=%s error=%s",
@@ -402,7 +402,7 @@ bool AuthManager::stepGetStreamingTokens(CancelCallback cancel) {
 
         if (resp.status_code != 200) {
             last_error_ = resp.network_error
-                ? "Network error while authorizing Xbox streaming. Check WiFi and try again."
+                ? describeXboxNetworkFailure("Could not authorize Xbox streaming.", resp.error_message)
                 : describeXstsFailure(resp.status_code, resp.body);
             fprintf(stderr, "[auth] XSTS GSSV failed: HTTP %d\n", resp.status_code);
             lunar::diagnosticLog("auth", "XSTS GSSV failed status=%d network=%s error=%s",
@@ -609,7 +609,7 @@ bool AuthManager::fetchStreamToken(const std::string& xsts_token,
     if (resp.status_code != 200) {
         if (required) {
             last_error_ = resp.network_error
-                ? "Network error while getting Xbox streaming token. Check WiFi and try again."
+                ? describeXboxNetworkFailure("Could not get the Xbox streaming token.", resp.error_message)
                 : "Xbox streaming token request failed. HTTP " + std::to_string(resp.status_code) + ".";
             fprintf(stderr, "[auth] GSSV token(%s) failed: HTTP %d\n",
                     offering_id.c_str(), resp.status_code);
@@ -754,7 +754,7 @@ bool AuthManager::refreshTokensIfNeeded(CancelCallback cancel) {
 
     if (resp.status_code != 200) {
         last_error_ = resp.network_error
-            ? "Network error while refreshing sign-in. Check WiFi and try again."
+            ? describeXboxNetworkFailure("Could not refresh Microsoft sign-in.", resp.error_message)
             : "Saved sign-in refresh failed. HTTP " + std::to_string(resp.status_code) + ".";
         fprintf(stderr, "[auth] Token refresh failed: HTTP %d\n", resp.status_code);
         lunar::diagnosticLog("auth", "Token refresh failed status=%d network=%s error=%s",
@@ -926,7 +926,7 @@ std::string AuthManager::getXcloudTransferToken(bool force_refresh,
     if (is_cancelled(cancel)) return "";
     if (resp.status_code != 200) {
         last_error_ = resp.network_error
-            ? "Network error while getting xCloud connect token."
+            ? describeXboxNetworkFailure("Could not get the xCloud connection token.", resp.error_message)
             : ("xCloud connect token request failed. HTTP " +
                std::to_string(resp.status_code));
         lunar::diagnosticLog("auth",

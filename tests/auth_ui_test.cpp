@@ -64,6 +64,20 @@ int main() {
     require(message.find("start.ui.xboxlive.com/CreateAccount") != std::string::npos,
             "XErr 2148916233 should include Microsoft redirect URL");
 
+    const auto tls_error = lunar::auth::describeXboxNetworkFailure(
+        "Could not request the Microsoft sign-in code.",
+        "SSL peer certificate cannot be authenticated with given CA certificates");
+    require(tls_error.find("Microsoft") != std::string::npos &&
+            tls_error.find("certificate") != std::string::npos,
+            "sign-in failure must retain its stage and TLS cause");
+    require(tls_error.find("WiFi") == std::string::npos,
+            "a certificate failure must not be attributed to WiFi");
+    const auto dns_error = lunar::auth::describeXboxNetworkFailure(
+        "Could not request the Microsoft sign-in code.",
+        "Could not resolve host: login.microsoftonline.com");
+    require(dns_error.find("resolve host") != std::string::npos,
+            "sign-in failure must retain a DNS cause");
+
     std::cout << "auth UI tests passed\n";
     return 0;
 }

@@ -93,6 +93,8 @@ jobs:
           cmake --build build/linux-ui --parallel 2
       - name: Validate native settings and SDL controller routing
         run: ctest --test-dir build/linux-ui --output-on-failure
+      - name: Verify native HTTPS trust and failure diagnostics
+        run: python3 scripts/linux_tls_smoke.py
       - name: Render native menus and settings
         env:
           SDL_AUDIODRIVER: dummy
