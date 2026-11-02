@@ -18,7 +18,7 @@ if(ANDROID)
     list(APPEND CMAKE_PREFIX_PATH "${ANDROID_PREFIX}")
     set(OPENSSL_ROOT_DIR "${ANDROID_PREFIX}")
     set(BRLS_PLATFORM_RESOURCES_PATH "\"./resources/\"")
-    add_compile_definitions(USE_GLES3 __SDL2__ ANDROID BOREALIS_USE_STD_THREAD)
+    add_compile_definitions(USE_GLES3 __SDL2__ ANDROID PLATFORM_ANDROID BOREALIS_USE_STD_THREAD)
     add_library(SDL2 SHARED IMPORTED GLOBAL)
     set_target_properties(SDL2 PROPERTIES IMPORTED_LOCATION "${ANDROID_PREFIX}/lib/libSDL2.so"
         INTERFACE_INCLUDE_DIRECTORIES "${ANDROID_PREFIX}/include")
@@ -117,7 +117,7 @@ foreach(language IN ITEMS C CXX)
 endforeach()
 add_library(lunarnx_native_core STATIC ${CORE_SOURCES})
 target_compile_definitions(lunarnx_native_core PUBLIC
-    PLATFORM_DESKTOP LUNARNX_NATIVE_UI
+    $<$<NOT:$<BOOL:${ANDROID}>>:PLATFORM_DESKTOP> LUNARNX_NATIVE_UI
     CONFIG_USE_LWIP=0 CONFIG_USE_USRSCTP=1 CONFIG_DTLS_USE_ECDSA=1
     CONFIG_IFACE_PREFIX="" CONFIG_IPV6=1)
 target_include_directories(lunarnx_native_core PUBLIC
