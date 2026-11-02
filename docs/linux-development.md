@@ -97,9 +97,26 @@ The isolated settings test also exercises SDL virtual controller mapping and
 rumble strength. Real account authentication, console streaming, physical
 controller behavior and handheld suspend/resume still require device testing.
 
+## Native PlayStation SDK
+
+The matching patched Chiaki library now builds independently on Linux:
+
+```sh
+sudo apt-get install libjson-c-dev libminiupnpc-dev libevent-dev protobuf-compiler python3-protobuf
+python3 scripts/prepare_linux_chiaki.py
+bash scripts/build_linux_chiaki.sh
+```
+
+This downloads pinned source archives into lib/chiaki-native, including curl
+with WebSocket support, nanopb, Jerasure and gf-complete. It applies the same
+transport patches as the Switch SDK and uses native OpenSSL instead of libnx
+cryptography. Existing dependency sources are never overwritten.
+The CI job validates library compilation; it does not yet validate a linked
+PlayStation session, pairing or PSN authentication from the Linux interface.
+
 ## Next platform work
 
-Link a native Chiaki build and adapt the PlayStation discovery, pairing,
+Link the native Chiaki SDK into the interface and adapt the PlayStation discovery, pairing,
 PSN callback and controller platform hooks. Validate local pairing and PSN
 flows before calling the unified app ready. AppImage packaging and Android
 platform work remain pending.
