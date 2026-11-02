@@ -3,8 +3,8 @@
 Linux has a native Borealis interface and a separate diagnostic CLI target.
 The interface renders Xbox video inside its own window and retains separate
 Xbox and PlayStation settings and controller mappings. It does not launch
-Chiaki-ng or XStreamingDesktop applications. PlayStation connection and native
-hardware decoding are still pending; the PlayStation tile currently opens settings.
+Chiaki-ng or XStreamingDesktop applications. The PlayStation tile now opens the integrated console, pairing and PSN flows.
+Native hardware decoding is still pending. Real console/account sessions need validation.
 
 ## Build
 
@@ -48,8 +48,8 @@ strategies through the SDL renderer under Xvfb/Mesa. It also encodes an Opus
 packet, decodes stereo PCM, tests packet-loss concealment and writes it to SDL's
 dummy audio output. These tests use no accounts or real consoles.
 
-This validates the shared PlayStation media strategy, not Chiaki networking or
-PSN authentication. PlayStation controllers are still guarded by __SWITCH__.
+This validates the shared PlayStation media strategy, independently of Chiaki
+networking or PSN authentication.
 
 ## Local Xbox streaming smoke
 
@@ -68,10 +68,13 @@ temporary working directory. The test does not authenticate to Microsoft.
 
 ## Native interface
 
-Add libgl1-mesa-dev and libswscale-dev to the packages above, then run:
+Add libgl1-mesa-dev, libswscale-dev, libjson-c-dev, libminiupnpc-dev,
+libevent-dev, protobuf-compiler and python3-protobuf to the packages above,
+then run:
 
 ```sh
 python3 scripts/prepare_linux_ui.py
+python3 scripts/prepare_linux_chiaki.py
 cmake -S linux/ui -B build/linux-ui -DCMAKE_BUILD_TYPE=Release
 cmake --build build/linux-ui --parallel 2
 ctest --test-dir build/linux-ui --output-on-failure
@@ -111,12 +114,33 @@ This downloads pinned source archives into lib/chiaki-native, including curl
 with WebSocket support, nanopb, Jerasure and gf-complete. It applies the same
 transport patches as the Switch SDK and uses native OpenSSL instead of libnx
 cryptography. Existing dependency sources are never overwritten.
-The CI job validates library compilation; it does not yet validate a linked
-PlayStation session, pairing or PSN authentication from the Linux interface.
+The UI builds and links the same SDK in its CMake graph, including a single
+pinned curl implementation shared with Xbox HTTP requests. The integrated
+PlayStation page supports LAN discovery, registration, wake, PSN phone sign-in
+and remote connection setup. These account/console flows require real device
+validation.
+
+Native controller input uses SDL. Touchscreen and physical controller touchpad
+snapshots feed the existing PlayStation gesture classifier. Supported controller
+gyro/accelerometer sensors feed Chiaki orientation tracking; devices without
+those sensors report no motion data. Physical sensor behavior is unverified.
+
+CI tests the local phone services with real sockets, including invalid pairing
+input and a mismatched PSN callback state. It also replays synthetic H.264/HEVC
+and stereo Opus through PsStreamController, PsMediaBridge, Chiaki's Opus decoder
+and the in-window renderer:
+
+```sh
+SDL_AUDIODRIVER=dummy xvfb-run -a build/linux-ui/LunarNX_Linux --ps-replay /absolute/fixture.mp4
+# Use --ps-hevc for a HEVC fixture.
+```
+
+Fixtures must contain 1280x720 video at 30 fps and 48 kHz stereo Opus with
+10 ms packets. Replay is diagnostic only and does not exercise console
+networking, encryption or Sony authentication.
 
 ## Next platform work
 
-Link the native Chiaki SDK into the interface and adapt the PlayStation discovery, pairing,
-PSN callback and controller platform hooks. Validate local pairing and PSN
-flows before calling the unified app ready. AppImage packaging and Android
-platform work remain pending.
+Validate local pairing, console streaming and PSN flows on real devices, then
+address any platform differences. AppImage packaging and Android platform work
+remain pending.
