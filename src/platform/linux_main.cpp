@@ -8,6 +8,9 @@
 #include <string>
 #include <thread>
 #include <cstdlib>
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 #include "../ps/ps_stream_controller.h"
 #include "../ui/stream_view.h"
 
@@ -56,8 +59,30 @@ int main(int argc, char** argv) {
     }
     umask(0077);
     try {
+#ifdef __ANDROID__
+        const char* internal = SDL_AndroidGetInternalStoragePath();
+        if (!internal) throw std::runtime_error("Android private storage is unavailable");
+        const std::filesystem::path storage(internal);
+        std::filesystem::current_path(storage);
+        setenv("XDG_CONFIG_HOME", (storage / "config").c_str(), 1);
+        setenv("XDG_CACHE_HOME", (storage / "cache").c_str(), 1);
+        setenv("SSL_CERT_FILE", (storage / "resources/ca-certificates.crt").c_str(), 1);
+        auto* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+        jclass locale_class = env->FindClass("java/util/Locale");
+        jmethodID get_default = env->GetStaticMethodID(locale_class, "getDefault", "()Ljava/util/Locale;");
+        jobject locale = env->CallStaticObjectMethod(locale_class, get_default);
+        jmethodID language_tag = env->GetMethodID(locale_class, "toLanguageTag", "()Ljava/lang/String;");
+        auto tag = static_cast<jstring>(env->CallObjectMethod(locale, language_tag));
+        const char* language = env->GetStringUTFChars(tag, nullptr);
+        if (language) {
+            setenv("LANG", language, 1);
+            env->ReleaseStringUTFChars(tag, language);
+        }
+        env->DeleteLocalRef(tag); env->DeleteLocalRef(locale); env->DeleteLocalRef(locale_class);
+#else
         const auto executable = std::filesystem::canonical("/proc/self/exe");
         std::filesystem::current_path(executable.parent_path());
+#endif
         lunar::ui::configureAppLocale();
         if (!brls::Application::init()) return 1;
         lunar::ui::installLunarTheme();
