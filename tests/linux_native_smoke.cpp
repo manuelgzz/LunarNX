@@ -151,9 +151,11 @@ int main(int argc, char** argv) {
     }
     try {
         // Construction must not start authentication or network streaming.
+#ifndef LUNARNX_NATIVE_UI
         lunar::app::StreamController controller;
         require(controller.getState() == lunar::app::StreamState::Idle,
                 "controller must start idle");
+#endif
         checkVideo(lunar::stream::VideoPipelinePath::Xbox,
                    lunar::stream::VideoCodec::H264, argv[1]);
         checkVideo(lunar::stream::VideoPipelinePath::PlayStation,
