@@ -7,6 +7,7 @@
 #include <switch.h>
 #else
 #include "../platform/native_gamepad.h"
+#include "native_touchpad.h"
 #endif
 #include <array>
 #include <chrono>
@@ -42,6 +43,10 @@ public:
     void reset();
 
 private:
+#ifndef __SWITCH__
+    NativeTouchpad native_touchpad_;
+    PsTouchpadFeedback native_feedback_{};
+#endif
     enum class GestureState : uint8_t {
         Idle,
         Pending,

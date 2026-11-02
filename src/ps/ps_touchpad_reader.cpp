@@ -90,6 +90,9 @@ void PsTouchpadReader::updateTrackedTouches(const TouchSnapshot& state) {
 }
 
 PsTouchpadFeedback PsTouchpadReader::feedback() const {
+#ifndef __SWITCH__
+    return native_feedback_;
+#else
     PsTouchpadFeedback feedback{};
     switch (gesture_) {
         case GestureState::Pending:
@@ -117,10 +120,33 @@ PsTouchpadFeedback PsTouchpadReader::feedback() const {
         };
     }
     return feedback;
+#endif
 }
 
 PsTouchpadState PsTouchpadReader::read(bool suppressed) {
     const auto now = std::chrono::steady_clock::now();
+#ifndef __SWITCH__
+    const auto snapshot = native_touchpad_.update(platform::nativeTouches(), suppressed, now);
+    PsTouchpadState result{};
+    result.pressed = snapshot.pressed;
+    native_feedback_ = {};
+    switch (snapshot.gesture) {
+        case NativeTouchpad::Gesture::None: break;
+        case NativeTouchpad::Gesture::Touch: native_feedback_.gesture = PsTouchpadGesture::Touch; break;
+        case NativeTouchpad::Gesture::Pan: native_feedback_.gesture = PsTouchpadGesture::Pan; break;
+        case NativeTouchpad::Gesture::Tap: native_feedback_.gesture = PsTouchpadGesture::Tap; break;
+        case NativeTouchpad::Gesture::LongPress: native_feedback_.gesture = PsTouchpadGesture::LongPress; break;
+    }
+    for (size_t i = 0; i < snapshot.points.size(); ++i) {
+        const auto& point = snapshot.points[i];
+        result.touches[i] = {point.active,
+            scaleCoordinate(point.x, kScreenMaxX, ps5_ ? 1919 : 1920),
+            scaleCoordinate(point.y, kScreenMaxY, ps5_ ? 1079 : 942)};
+        native_feedback_.points[i] = {point.active,
+            static_cast<uint16_t>(point.x), static_cast<uint16_t>(point.y)};
+    }
+    return result;
+#else
     TouchSnapshot state{};
 #ifdef __SWITCH__
     const size_t samples = hidGetTouchScreenStates(&state, 1);
@@ -272,9 +298,14 @@ PsTouchpadState PsTouchpadReader::read(bool suppressed) {
 
     if (gesture_ == GestureState::LongPress) return currentState(true);
     return {};
+#endif
 }
 
 void PsTouchpadReader::reset() {
+#ifndef __SWITCH__
+    native_touchpad_.reset();
+    native_feedback_ = {};
+#endif
     gesture_ = GestureState::Idle;
     touches_ = {};
     had_multiple_touches_ = false;

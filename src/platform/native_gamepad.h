@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include "../input/gamepad_reader.h"
+#include "native_touch.h"
 
 namespace lunar::platform {
 // Stable masks used by LunarNX's existing per-platform configuration files.
@@ -24,10 +25,6 @@ inline constexpr uint64_t HidNpadButton_Up = 1ULL << 13;
 inline constexpr uint64_t HidNpadButton_Right = 1ULL << 14;
 inline constexpr uint64_t HidNpadButton_Down = 1ULL << 15;
 }
-struct NativeTouch {
-    uint64_t finger_id;
-    uint32_t x, y;
-};
 struct NativeMotion {
     bool valid = false;
     std::array<float, 3> gyro{}, accel{};

@@ -17,7 +17,8 @@ foreach(name IN ITEMS
     nv12_texture_geometry
     video_resolution_transition
     operation_generation
-    stream_input_router)
+    stream_input_router
+    native_touchpad)
     add_executable(${name}_test "${LUNARNX_ROOT}/tests/${name}_test.cpp")
     target_link_libraries(${name}_test PRIVATE Threads::Threads)
     target_include_directories(${name}_test PRIVATE "${LUNARNX_ROOT}/src")

@@ -36,6 +36,7 @@ input::GamepadState rawState() {
         state.view = button(SDL_CONTROLLER_BUTTON_BACK);
         state.menu = button(SDL_CONTROLLER_BUTTON_START);
         state.guide = button(SDL_CONTROLLER_BUTTON_GUIDE);
+        state.touchpad = button(SDL_CONTROLLER_BUTTON_TOUCHPAD);
         state.dpad_up = button(SDL_CONTROLLER_BUTTON_DPAD_UP);
         state.dpad_down = button(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
         state.dpad_left = button(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
@@ -124,7 +125,7 @@ input::GamepadState nativeGamepad(const input::ButtonMapping& mapping) {
     state.l3 = mapped(RemoteButton::L3); state.r3 = mapped(RemoteButton::R3);
     state.view = mapped(RemoteButton::View); state.menu = mapped(RemoteButton::Menu);
     state.guide = state.guide || mapped(RemoteButton::Guide);
-    state.touchpad = mapped(RemoteButton::Touchpad);
+    state.touchpad = state.touchpad || mapped(RemoteButton::Touchpad);
     if (!state.lt) state.left_trigger = 0;
     else if (!state.left_trigger) state.left_trigger = 65535;
     if (!state.rt) state.right_trigger = 0;
@@ -162,10 +163,11 @@ std::vector<NativeTouch> nativeTouches() {
     // SDL touch snapshots are updated by Borealis' main event loop.
     for (int device = 0; device < SDL_GetNumTouchDevices(); ++device) {
         const auto id = SDL_GetTouchDevice(device);
+        if (id == SDL_MOUSE_TOUCHID) continue; // Ignore SDL's synthetic mouse touches.
         for (int index = 0; index < SDL_GetNumTouchFingers(id); ++index) {
             const auto* finger = SDL_GetTouchFinger(id, index);
             if (finger) result.push_back({static_cast<uint64_t>(finger->id),
-                coordinate(finger->x, 1279), coordinate(finger->y, 719)});
+                coordinate(finger->x, 1279), coordinate(finger->y, 719), true});
         }
         if (!result.empty()) break;
     }

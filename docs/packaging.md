@@ -107,3 +107,24 @@ with `LUNARNX_VIDEO_DECODE=software` or select a render device with
 `LUNARNX_VAAPI_DEVICE=/dev/dri/renderD128`. VA-API requires compatible host
 drivers and permission to access the render device. CI without a GPU verifies
 fallback and CPU replay, not actual hardware performance.
+
+## PlayStation touchscreen touchpad (Linux and Android)
+
+During a PlayStation stream, the touchscreen sends up to two independent
+contacts to the remote PS4/PS5 touchpad, including stationary contacts and small
+movements. Coordinates use the entire application window and are mapped to the
+console touchpad dimensions. Swipe to send a touchpad gesture; briefly tap to
+click, or hold one stationary finger for 500 ms to hold the touchpad button.
+Lifting the finger releases the contact, including during the short click pulse.
+Two-finger gestures do not synthesize a click.
+
+The rightmost 96 pixels of the 1280-wide logical UI are reserved for the
+leftward swipe that opens the stream menu. Start game gestures outside that
+strip. Menu/pause input is released and held fingers must lift before game
+input resumes. A connected controller's physical touchpad and its click button
+remain supported. Linux requires a touchscreen driver exposing SDL touch
+contacts; mouse input is not interpreted as a touchpad contact.
+
+The portable native_touchpad regression covers gesture and input lifecycle
+behavior shared by both builds. Real touchscreen-to-console operation still
+requires testing on Linux hardware and an Android device.
