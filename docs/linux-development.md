@@ -31,8 +31,8 @@ trees. LINUX_PROVENANCE.json records the source revisions, archive hashes and
 applied patch names in the generated dependency directory.
 
 Output: build/linux/LunarNX_Desktop. It is dynamically linked to system SDL2,
-FFmpeg, Opus, curl and OpenSSL. The CI artifact is a diagnostic build, not an
-AppImage or a portable release.
+FFmpeg, Opus, curl and OpenSSL. This CLI artifact is a diagnostic build. The native UI is also packaged separately
+as a development AppImage; see [packaging.md](packaging.md).
 
 ## Offline media smoke
 
@@ -142,5 +142,5 @@ networking, encryption or Sony authentication.
 ## Next platform work
 
 Validate local pairing, console streaming and PSN flows on real devices, then
-address any platform differences. AppImage packaging and Android platform work
-remain pending.
+address any platform differences. Development AppImage and Android ARM64 APK builds are now available from CI.
+See [packaging.md](packaging.md) for downloads, build commands and validation limits.
