@@ -149,6 +149,14 @@ int main(int argc, char** argv) {
             }
             if ((smoke || runtime) && std::chrono::steady_clock::now() > deadline) {
                 std::fprintf(stderr, "Native UI smoke timed out\n");
+                if (runtime) {
+                    const auto& perf = runtime->getPerfStats();
+                    std::fprintf(stderr, "state=%d presented=%llu video=%u audio=%u decode_errors=%u\n",
+                        static_cast<int>(runtime->getState()),
+                        static_cast<unsigned long long>(lunar::platform::native_presented_frames.load()),
+                        perf.video_frames.load(), perf.audio_frames.load(),
+                        perf.video_decode_errors.load());
+                }
                 if (runtime) runtime->requestStop();
                 brls::Application::quit();
             }
