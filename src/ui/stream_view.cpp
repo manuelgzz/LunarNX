@@ -81,8 +81,9 @@ public:
         nvgFillColor(vg, nvgRGBA(0, 0, 0, 255));
         nvgFill(vg);
 
-        auto frame = stream::SoftwareVideoFrameSink::instance().snapshot();
-        if (frame.empty()) return;
+        const auto retained_frame = stream::SoftwareVideoFrameSink::instance().acquire();
+        if (!retained_frame || retained_frame->empty()) return;
+        const auto& frame = *retained_frame;
 
         if (nvg_image_ < 0 ||
             frame.width != image_width_ ||

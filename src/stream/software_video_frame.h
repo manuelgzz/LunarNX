@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <mutex>
+#include <memory>
 #include <vector>
 
 namespace lunar::stream {
@@ -25,14 +26,14 @@ public:
                      int width,
                      int height,
                      uint64_t timestamp);
+    // Immutable ownership keeps pixels alive during upload without holding the
+    // producer lock or copying a full image on each UI repaint.
+    std::shared_ptr<const SoftwareVideoFrameSnapshot> acquire() const;
     SoftwareVideoFrameSnapshot snapshot() const;
 
 private:
     mutable std::mutex mutex_;
-    std::vector<uint8_t> rgba_;
-    int width_ = 0;
-    int height_ = 0;
-    uint64_t timestamp_ = 0;
+    std::shared_ptr<const SoftwareVideoFrameSnapshot> frame_;
     uint64_t generation_ = 0;
 };
 

@@ -192,6 +192,12 @@ endif()
 target_compile_options(lunarnx_native_core PUBLIC
     "-idirafter${PEER}/include" "-idirafter${PEER}/include/sys")
 if(NOT ANDROID)
+add_executable(software_video_frame_ownership_test
+    "${ROOT}/tests/software_video_frame_ownership_test.cpp"
+    "${ROOT}/src/stream/software_video_frame.cpp")
+target_link_libraries(software_video_frame_ownership_test PRIVATE Threads::Threads)
+target_compile_options(software_video_frame_ownership_test PRIVATE -UNDEBUG)
+add_test(NAME software_video_frame_ownership COMMAND software_video_frame_ownership_test)
 add_executable(native_http_probe "${ROOT}/tests/native_http_probe.cpp")
 target_link_libraries(native_http_probe PRIVATE lunarnx_native_core)
 add_executable(auth_ui_transport_test "${ROOT}/tests/auth_ui_test.cpp")
