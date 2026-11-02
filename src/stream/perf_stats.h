@@ -46,6 +46,8 @@ struct LatencyPerfWindow {
 };
 
 struct PerfStats {
+    // Native decoder producing frames: 0=software, 1=VA-API, 2=MediaCodec.
+    std::atomic<int> native_video_decoder{0};
     std::atomic<uint32_t> video_frames{0};
     std::atomic<uint32_t> decoded_video_width{0};
     std::atomic<uint32_t> decoded_video_height{0};

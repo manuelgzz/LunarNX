@@ -918,6 +918,10 @@ void StreamView::runLoop() {
         std::string res = std::to_string(w) + "x" + std::to_string(h);
         std::string video_backend = stream::videoBackendOverlayName(
             runtime_->getDefaultVideoBackend());
+#ifdef LUNARNX_NATIVE_UI
+        const int decoder = p.native_video_decoder.load();
+        video_backend = decoder == 1 ? "VA-API" : decoder == 2 ? "MediaCodec" : "SW";
+#endif
         std::string video_codec = stream::videoCodecOverlayName(
             runtime_->getVideoCodec());
         auto alive = alive_;

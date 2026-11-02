@@ -84,3 +84,26 @@ Both builds currently use software video decoding. Real account/console
 sessions, physical controls, suspend/resume and Android performance still need
 device testing. Configurable on-screen gamepad buttons and native hardware
 video acceleration remain platform work.
+
+## Native video acceleration
+
+Linux attempts VA-API and Android attempts FFmpeg's NDK MediaCodec decoders
+when the first random-access H.264/HEVC frame arrives. Android dependencies
+include both MediaCodec decoders and request the optional low-latency mode.
+Decoding uses the platform codec; presentation still copies to CPU RGBA and
+uploads through the existing unified interface. This is not zero-copy rendering.
+The Switch NVDEC renderer is unchanged.
+
+The performance overlay shows VA-API, MediaCodec, or SW only after that decoder
+produces an image. MediaCodec identifies the Android decoding service; whether
+a vendor hardware codec is selected must be confirmed on the device.
+Private application logs record accelerator opening and fallback events.
+
+If opening fails, software continues with the original random-access frame.
+A runtime codec/transfer error or 120 input access units without an output
+switches to software and lets the normal keyframe recovery path resume.
+Acceleration is attempted once per session. Linux can explicitly use CPU mode
+with `LUNARNX_VIDEO_DECODE=software` or select a render device with
+`LUNARNX_VAAPI_DEVICE=/dev/dri/renderD128`. VA-API requires compatible host
+drivers and permission to access the render device. CI without a GPU verifies
+fallback and CPU replay, not actual hardware performance.

@@ -49,7 +49,8 @@ pushd "$sources/ffmpeg"
     --ranlib="$native_tools/llvm-ranlib" --nm="$native_tools/llvm-nm" \
     --strip="$native_tools/llvm-strip" --sysroot="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot" \
     --enable-static --disable-shared --enable-pic --disable-programs --disable-doc \
-    --disable-debug --disable-everything --enable-decoder=h264,hevc \
+    --disable-debug --disable-everything --enable-jni --enable-mediacodec \
+    --enable-decoder=h264,hevc,h264_mediacodec,hevc_mediacodec \
     --enable-parser=h264,hevc --enable-demuxer=mov --enable-protocol=file \
     --enable-swscale --enable-swresample --enable-avformat --disable-network \
     --disable-avdevice --disable-avfilter --disable-vulkan --disable-zlib \

@@ -2,6 +2,8 @@
 #include "app/stream_controller.h"
 #include "stream/stream_backend_provider.h"
 #include "stream/video_decoder.h"
+#include "stream/perf_stats.h"
+#include <cstdlib>
 #include "stream/video_renderer.h"
 #include "stream/audio_decoder.h"
 #include "stream/audio_player.h"
@@ -28,6 +30,8 @@ void checkVideo(lunar::stream::VideoPipelinePath path,
     auto provider = StreamBackendProvider::createDefault();
     auto decoder = provider->createVideoDecoder(path);
     auto renderer = provider->createVideoRenderer();
+    PerfStats stats;
+    decoder->setPerfStats(&stats);
     decoder->setVideoBackend(VideoBackend::Software);
     decoder->setVideoCodec(codec);
     require(decoder->initialize(320, 180), "video decoder initialization failed");
@@ -66,6 +70,13 @@ void checkVideo(lunar::stream::VideoPipelinePath path,
     require(valid && frames >= 2, "expected decoded and presented fixture frames");
     require(renderer->successfulPresentCount() == frames, "SDL presentation failed");
     require(renderer->consumeRenderFault() == RenderFault::None, "renderer fault");
+#ifdef LUNARNX_NATIVE_UI
+    if (const char* expected = std::getenv("LUNARNX_EXPECT_NATIVE_DECODER")) {
+        const bool hardware = std::string(expected) == "hardware";
+        require((stats.native_video_decoder.load() != 0) == hardware,
+                "unexpected active native decoder");
+    }
+#endif
     decoder->shutdown();
     renderer->shutdown();
     std::printf("PASS %s %s: %u frames decoded and presented\n",

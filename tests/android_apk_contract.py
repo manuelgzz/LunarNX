@@ -23,6 +23,9 @@ with zipfile.ZipFile(apk) as package, tempfile.TemporaryDirectory() as folder:
         if name.endswith("/libmain.so"):
             symbols = subprocess.check_output([readelf, "--dyn-syms", target], text=True)
             assert "SDL_main" in symbols
+            native = target.read_bytes()
+            for codec in (b"h264_mediacodec\x00", b"hevc_mediacodec\x00"):
+                assert codec in native, f"Missing packaged decoder: {codec!r}"
     for name in ("i18n/en-US/lunarnx.json", "font/switch_font.ttf", "ca-certificates.crt"):
         assert "assets/resources/" + name in names, name
 print("PASS Android APK: ARM64 native engines, SDL entry point and packaged resources")

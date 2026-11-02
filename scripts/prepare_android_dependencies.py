@@ -26,6 +26,17 @@ def main():
                 provenance.append({**item, "archive_sha256": digest})
             (stage / "ANDROID_PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
             stage.rename(destination)
+    # Request Android's optional low-latency decoder mode before configure.
+    # Unsupported vendors ignore this MediaFormat key; CPU fallback stays available.
+    mc_source = destination / "ffmpeg/libavcodec/mediacodecdec_common.c"
+    mc = mc_source.read_text()
+    configure_call = "    status = ff_AMediaCodec_configure(s->codec, format, s->surface, NULL, 0);"
+    low_latency = '    ff_AMediaFormat_setInt32(format, "low-latency", 1);'
+    if low_latency not in mc:
+        if mc.count(configure_call) != 1:
+            raise SystemExit("Pinned MediaCodec configure site changed")
+        mc_source.write_text(mc.replace(configure_call, low_latency + "\n" + configure_call))
+        (ROOT / "build/android-prefix/.lunarnx-complete").unlink(missing_ok=True)
     # mbedTLS 3.4's AESCE intrinsics are incompatible with NDK 28's Clang.
     # Use its portable AES implementation; SRTP still uses native OpenSSL.
     config = ROOT / "lib/libpeer/third_party/mbedtls/include/mbedtls/mbedtls_config.h"

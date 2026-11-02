@@ -93,6 +93,22 @@ jobs:
           cmake --build build/linux-ui --parallel 2
       - name: Validate native settings and SDL controller routing
         run: ctest --test-dir build/linux-ui --output-on-failure
+      - name: Decode native video with unavailable acceleration and explicit CPU mode
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          LUNARNX_EXPECT_NATIVE_DECODER: software
+        run: |
+          decode_state=$(mktemp -d)
+          XDG_CACHE_HOME="$decode_state" LUNARNX_VAAPI_DEVICE=/dev/lunarnx-missing-render-device build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          XDG_CACHE_HOME="$decode_state" LUNARNX_VIDEO_DECODE=software build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          python3 - "$decode_state" <<'PY'
+          from pathlib import Path
+          import sys
+          text = (Path(sys.argv[1]) / "lunarnx/lunarnx.log").read_text()
+          assert "selected=software reason=accelerator-open-failed" in text
+          assert "selected=software reason=override" in text
+          PY
       - name: Verify native HTTPS trust and failure diagnostics
         run: python3 scripts/linux_tls_smoke.py
       - name: Render native menus and settings

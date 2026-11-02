@@ -72,7 +72,7 @@ target_compile_definitions(chiaki-lib PRIVATE
 
 find_package(PkgConfig REQUIRED)
 if(ANDROID)
-    set(NATIVE_GL_LIBS GLESv3 EGL android log m)
+    set(NATIVE_GL_LIBS GLESv3 EGL android log mediandk dl m)
 else()
     find_package(OpenGL REQUIRED)
     set(NATIVE_GL_LIBS OpenGL::GL)
@@ -192,6 +192,8 @@ endif()
 target_compile_options(lunarnx_native_core PUBLIC
     "-idirafter${PEER}/include" "-idirafter${PEER}/include/sys")
 if(NOT ANDROID)
+add_executable(native_video_decode_smoke "${ROOT}/tests/linux_native_smoke.cpp")
+target_link_libraries(native_video_decode_smoke PRIVATE lunarnx_native_core)
 add_executable(software_video_frame_ownership_test
     "${ROOT}/tests/software_video_frame_ownership_test.cpp"
     "${ROOT}/src/stream/software_video_frame.cpp")
