@@ -63,6 +63,7 @@ jobs:
           /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --verbose android/app/build/outputs/apk/debug/app-debug.apk
           /usr/local/lib/android/sdk/build-tools/35.0.0/aapt dump badging android/app/build/outputs/apk/debug/app-debug.apk
           python3 tests/android_apk_contract.py android/app/build/outputs/apk/debug/app-debug.apk
+          python3 tests/android_jni_contract.py android/app/build/outputs/apk/debug/app-debug.apk
           /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign -c -P 16 4 android/app/build/outputs/apk/debug/app-debug.apk
           git diff --check HEAD^ HEAD
           mkdir -p build/packages

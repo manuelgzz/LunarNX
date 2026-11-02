@@ -42,8 +42,11 @@ def main():
     java.mkdir(parents=True, exist_ok=True)
     shutil.copytree(destination / "SDL/android-project/app/src/main/java/org/libsdl/app", java, dirs_exist_ok=True)
     borealis = ROOT / "lib/borealis"
-    for name in ("PlatformUtils.java", "BorealisHandler.java"):
+    for name in ("BorealisHandler.java",):
         shutil.copy2(borealis / "android-project/app/src/main/java/org/libsdl/app" / name, java)
+    # PlatformUtils is maintained with the application so its JNI ABI matches
+    # the native Borealis backend, including both device-rumble methods.
+    (java / "PlatformUtils.java").unlink(missing_ok=True)
     assets = generated / "assets/resources"
     shutil.copytree(borealis / "resources", assets, dirs_exist_ok=True)
     shutil.copytree(ROOT / "romfs", assets, dirs_exist_ok=True)

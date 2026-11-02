@@ -9,7 +9,7 @@ license; the LunarNX MIT license does not replace those terms.
 | Component | Project | License family |
 | --- | --- | --- |
 | libpeer | <https://github.com/sepfy/libpeer> | MIT |
-| Borealis (XITRIX fork) | <https://github.com/XITRIX/borealis> | MIT |
+| Borealis (XITRIX fork) | <https://github.com/XITRIX/borealis> | Apache-2.0 |
 | FFmpeg with Nintendo Switch NVDEC patches | <https://github.com/FFmpeg/FFmpeg> and <https://github.com/xfangfang/wiliwili> | LGPL/GPL, depending on configuration |
 | libnx | <https://github.com/switchbrew/libnx> | ISC |
 | deko3d | <https://github.com/devkitPro/deko3d> | zlib |
