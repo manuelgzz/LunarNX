@@ -245,6 +245,7 @@ struct PerfStats {
     std::chrono::steady_clock::time_point start_time;
 
     void reset() {
+        native_video_decoder = 0;
         video_frames = 0; decoded_video_width = 0; decoded_video_height = 0;
         audio_frames = 0; audio_drops = 0;
         audio_queued_buffers = 0; audio_queue_high_watermark = 0;

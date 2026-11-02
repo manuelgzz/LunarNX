@@ -4,6 +4,7 @@
 #include "stream/video_decoder.h"
 #include "stream/perf_stats.h"
 #include <cstdlib>
+#include <functional>
 #include "stream/video_renderer.h"
 #include "stream/audio_decoder.h"
 #include "stream/audio_player.h"
@@ -24,17 +25,43 @@ void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+#ifdef LUNARNX_NATIVE_UI
+template<class Decoder>
+class FallbackProbe : public Decoder {
+public:
+    bool replaceWithSoftware() {
+        this->fallBackToSoftware();
+        return this->initialized_ && this->native_attempted_ && !this->native_active_;
+    }
+};
+#endif
+
 void checkVideo(lunar::stream::VideoPipelinePath path,
                 lunar::stream::VideoCodec codec, const char* fixture) {
     using namespace lunar::stream;
     auto provider = StreamBackendProvider::createDefault();
     auto decoder = provider->createVideoDecoder(path);
+    std::function<bool()> replace;
+#ifdef LUNARNX_NATIVE_UI
+    if (std::getenv("LUNARNX_TEST_RUNTIME_FALLBACK")) {
+        if (path == VideoPipelinePath::Xbox) {
+            auto probe = std::make_unique<FallbackProbe<XboxVideoDecoder>>();
+            replace = [raw = probe.get()] { return raw->replaceWithSoftware(); };
+            decoder = std::move(probe);
+        } else {
+            auto probe = std::make_unique<FallbackProbe<PsVideoDecoder>>();
+            replace = [raw = probe.get()] { return raw->replaceWithSoftware(); };
+            decoder = std::move(probe);
+        }
+    }
+#endif
     auto renderer = provider->createVideoRenderer();
     PerfStats stats;
     decoder->setPerfStats(&stats);
     decoder->setVideoBackend(VideoBackend::Software);
     decoder->setVideoCodec(codec);
     require(decoder->initialize(320, 180), "video decoder initialization failed");
+    if (replace) require(replace(), "runtime fallback did not reopen software");
     require(renderer->initialize("LunarNX native media smoke", 320, 180),
             "SDL video renderer initialization failed");
 

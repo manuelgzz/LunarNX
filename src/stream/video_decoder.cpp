@@ -1080,7 +1080,6 @@ void VideoDecoder::shutdown() {
     submitted_timestamps_.clear();
 #ifdef LUNARNX_NATIVE_UI
     native_active_ = false;
-    if (perf_) perf_->native_video_decoder.store(0);
 #endif
     initialized_ = false;
     error_log_count_ = 0;

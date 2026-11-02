@@ -24,7 +24,7 @@ with zipfile.ZipFile(apk) as package, tempfile.TemporaryDirectory() as folder:
             symbols = subprocess.check_output([readelf, "--dyn-syms", target], text=True)
             assert "SDL_main" in symbols
             native = target.read_bytes()
-            for codec in (b"h264_mediacodec\x00", b"hevc_mediacodec\x00"):
+            for codec in (b"H.264 Android MediaCodec decoder\x00", b"H.265 Android MediaCodec decoder\x00"):
                 assert codec in native, f"Missing packaged decoder: {codec!r}"
     for name in ("i18n/en-US/lunarnx.json", "font/switch_font.ttf", "ca-certificates.crt"):
         assert "assets/resources/" + name in names, name
