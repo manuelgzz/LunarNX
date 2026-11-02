@@ -10,6 +10,7 @@ on:
       - "tools/mock_xbox/**"
       - "tests/portable/**"
       - "tests/*_test.cpp"
+      - "tests/linux_native_smoke.cpp"
       - "src/**"
       - ".github/workflows/linux-port.yml"
   pull_request:
@@ -17,6 +18,7 @@ on:
       - "Makefile.linux"
       - "tests/portable/**"
       - "tests/*_test.cpp"
+      - "tests/linux_native_smoke.cpp"
       - "src/**"
       - ".github/workflows/linux-port.yml"
   workflow_dispatch:
