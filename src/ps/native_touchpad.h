@@ -66,17 +66,28 @@ public:
         multiple_ |= input.size() > 1;
         // Release old slots before assigning new fingers, keeping the other
         // finger's protocol slot stable when one contact is replaced.
-        for (auto& point : points_) {
+        std::array<bool, 2> released{};
+        for (size_t i = 0; i < points_.size(); ++i) {
+            auto& point = points_[i];
             if (point.active && std::none_of(input.begin(), input.end(),
-                    [&](const auto& touch) { return touch.finger_id == point.id; }))
+                    [&](const auto& touch) { return touch.finger_id == point.id; })) {
                 point = {};
+                released[i] = true;
+            }
         }
         for (const auto& touch : input) {
             auto slot = std::find_if(points_.begin(), points_.end(),
                 [&](const auto& point) { return point.active && point.id == touch.finger_id; });
             if (slot == points_.end()) {
-                slot = std::find_if(points_.begin(), points_.end(),
-                    [](const auto& point) { return !point.active; });
+                // Publish a release before reusing a slot so Chiaki assigns
+                // the replacement a fresh contact ID.
+                slot = points_.end();
+                for (size_t i = 0; i < points_.size(); ++i) {
+                    if (!points_[i].active && !released[i]) {
+                        slot = points_.begin() + i;
+                        break;
+                    }
+                }
                 if (slot == points_.end()) continue;
                 *slot = {true, touch.finger_id, 0, 0,
                          std::min(touch.x, 1279u), std::min(touch.y, 719u)};

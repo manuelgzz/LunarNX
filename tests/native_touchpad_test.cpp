@@ -20,6 +20,10 @@ int main() {
     assert(!state.points[0].active && state.points[1].active && state.points[1].id == 20);
     state = update({{20, 610, 410, true}, {30, 300, 300, true}}, 32);
     assert(state.points[0].id == 30 && state.points[1].id == 20);
+    state = update({{20, 610, 410, true}, {35, 300, 300, true}}, 33);
+    assert(!state.points[0].active && state.points[1].id == 20);
+    state = update({{20, 610, 410, true}, {35, 300, 300, true}}, 34);
+    assert(state.points[0].id == 35 && state.points[1].id == 20);
     state = update({}, 40);
     assert(!state.pressed && !state.points[0].active && !state.points[1].active);
     state = update({{40, 200, 200, true}}, 100);
