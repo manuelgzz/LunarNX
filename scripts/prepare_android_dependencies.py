@@ -30,9 +30,10 @@ def main():
     # Use its portable AES implementation; SRTP still uses native OpenSSL.
     config = ROOT / "lib/libpeer/third_party/mbedtls/include/mbedtls/mbedtls_config.h"
     original = config.read_text()
-    import re
-    portable = re.sub(r"^#define MBEDTLS_AESCE_C\\s*$",
-                      "/* Android NDK: use portable mbedTLS AES. */", original, flags=re.MULTILINE)
+    portable = "\n".join(
+        "/* Android NDK: use portable mbedTLS AES. */"
+        if line.strip() == "#define MBEDTLS_AESCE_C" else line
+        for line in original.splitlines()) + "\n"
     if portable != original:
         config.write_text(portable)
         (ROOT / "build/android-prefix/.lunarnx-complete").unlink(missing_ok=True)
