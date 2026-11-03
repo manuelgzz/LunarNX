@@ -693,6 +693,14 @@ brls::View* PsActivity::createContentView() {
     appendMockReplayConsole(hosts_);
     updateSourceUi();
     rebuildConsoleList(hosts_);
+    // Same action as "Search LAN", started once when the page opens so an
+    // already powered-on console shows up without an extra click.
+    auto alive = alive_;
+    brls::sync([this, alive]() {
+        if (!alive->load()) return;
+        diagnosticLog("ui-ps", "Auto Search LAN on page open");
+        startLanDiscovery();
+    });
     return makeAppFrame("PlayStation", workspace);
 }
 

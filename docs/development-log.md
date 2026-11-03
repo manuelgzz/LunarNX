@@ -1,5 +1,24 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-03 — Búsqueda LAN automática al abrir PlayStation
+
+- Rama `manuelgzz-ps-auto-search-lan` sobre `develop` (c1cd30f).
+- Al abrir la página PlayStation se lanza en segundo plano la misma acción del
+  botón "Search LAN" (`PsActivity::startLanDiscovery`, diferida con
+  `brls::sync`). No valida que la consola esté encendida ni bloquea la interfaz;
+  el botón sigue disponible. Código compartido: aplica a Switch, Linux y Android.
+  No se dispara al reanudar la página ni se lanza el refresco PSN.
+- Validación: `tests/ps_page_flow_test.py` actualizado (antes exigía no
+  descubrir al abrir) y pruebas PS/UI enfocadas pasan; `git diff --check` limpio.
+  No se compiló Switch/Linux/Android localmente: pendiente CI.
+- Pruebas del usuario en Android (reportadas, sin registro formal): Xbox más
+  estable con decodificación por software; PlayStation mejor con MediaCodec;
+  gamepads táctiles correctos.
+- Problema abierto: en Linux con PlayStation el indicador siempre muestra SW,
+  incluso reiniciando la sesión; sin determinar si el cambio de codec es real o
+  solo falla el indicador. Investigar.
+- Sin validación en hardware de la búsqueda automática.
+
 ## 2026-11-02 — Consolidación en develop
 
 - Integración con historial del último port, main y estabilidad/diagnósticos.
