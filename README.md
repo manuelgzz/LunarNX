@@ -204,8 +204,8 @@ Before reporting a problem, read [SECURITY.md](SECURITY.md). Never post token fi
 
 For the Linux/Android fork and cross-device handoff, start with the
 [continuity guide](docs/CONTINUAR_DESARROLLO.md) and
-[development log](docs/development-log.md). The active port is on
-`port/ps-touchscreen-linux-android`, not `main`.
+[development log](docs/development-log.md). The active development branch for Switch/Linux/Android is `develop`;
+`main` remains the stable line. See the [consolidation record](docs/branch-consolidation.md).
 
 Build instructions, validation commands, architecture, and testing notes are documented in the [development guide](docs/development.md). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 

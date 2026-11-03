@@ -1,7 +1,7 @@
 name: Linux port foundation
 on:
   push:
-    branches: [main, "port/**"]
+    branches: [main, develop, "port/**"]
     paths:
       - "Makefile.linux"
       - "linux/**"

@@ -1,7 +1,7 @@
 name: Android ARM64 APK
 on:
   push:
-    branches: ["port/**"]
+    branches: [develop, "port/**"]
     paths: ["android/**", "linux/ui/**", "src/**", "scripts/*android*", "scripts/prepare_linux*", "linux/*dependencies*", "tools/chiaki_switch/**", ".github/workflows/android-port.yml"]
   pull_request:
     paths: ["android/**", "linux/ui/**", "src/**", "scripts/*android*", ".github/workflows/android-port.yml"]

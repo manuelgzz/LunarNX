@@ -5,14 +5,15 @@ Repositorio de trabajo: https://github.com/manuelgzz/LunarNX
 
 ## Leer primero
 
-El desarrollo nativo Linux/Android está en **port/ps-touchscreen-linux-android**.
-No asumir que `main` contiene ese trabajo. Esta guía también se publica en
-`main` para encontrar la rama correcta; el estado vigente debe consultarse en
-la rama de trabajo. `port/linux-native-foundation` conserva la base anterior.
+El desarrollo integrado Switch/Linux/Android continúa en **develop**.
+`main` conserva la línea estable. Las ramas del port y diagnóstico se han
+incorporado con su historial en develop; su retirada se condiciona a las tres
+compilaciones exitosas. Consultar [consolidación](branch-consolidation.md).
+La copia de esta guía en main sirve de entrada; el estado vigente está en develop.
 
 Leer en este orden: `AGENTS.md`, este documento,
-[registro de cambios](development-log.md), [empaquetado](https://github.com/manuelgzz/LunarNX/blob/port/ps-touchscreen-linux-android/docs/packaging.md),
-[Linux](https://github.com/manuelgzz/LunarNX/blob/port/ps-touchscreen-linux-android/docs/linux-development.md) y [dirección del port](https://github.com/manuelgzz/LunarNX/blob/port/ps-touchscreen-linux-android/docs/linux-android-port.md).
+[registro de cambios](development-log.md), [empaquetado](https://github.com/manuelgzz/LunarNX/blob/develop/docs/packaging.md),
+[Linux](https://github.com/manuelgzz/LunarNX/blob/develop/docs/linux-development.md) y [dirección del port](https://github.com/manuelgzz/LunarNX/blob/develop/docs/linux-android-port.md).
 Los tres últimos documentos están en la rama del port.
 
 DualStream es el nombre usado en las conversaciones para el objetivo de unificar
@@ -23,8 +24,10 @@ este port nativo ni migrarlo sin una decisión explícita.
 ## Estado verificado en GitHub
 
 Referencia de código revisada: `59a3efec43854cf5ad3766af0fbb77f673a1cac2`.
-Esta referencia identifica la base de código; los commits posteriores de
-documentación no significan que los binarios hayan sido recompilados.
+Esta es la base histórica validada antes de la consolidación. Develop añade la
+corrección de cierre del renderizador Switch (c9be7d4), diagnósticos (73ab664),
+las reglas CI y esta documentación. Las ejecuciones siguientes pertenecen a la
+base histórica; consultar el registro de consolidación para las nuevas.
 
 - Interfaz Borealis propia con motores Xbox y PlayStation integrados; no abre
   Chiaki-ng ni XStreamingDesktop como aplicaciones externas.
@@ -56,6 +59,17 @@ CI Android valida compilación, enlace, firma y contrato del APK. Consultar los
 pasos de cada ejecución antes de atribuirle una prueba concreta. Ninguno
 demuestra fluidez o aceleración física en la tablet o ROG Ally.
 
+## Validación de la consolidación
+
+Estado de consolidación: pendiente de validación CI y retirada de ramas.
+
+Las tres compilaciones se ejecutan en develop: Linux, Android y Switch con
+pruebas host y comprobación BSS. El workflow de consolidación en main retirará
+solo las ramas registradas cuyo SHA no haya cambiado y cuyo historial esté
+contenido en el commit validado. El informe final queda en
+`docs/consolidation-validation.md` cuando finaliza. Si algo falla, conservar
+las ramas y consultar Actions antes de continuar.
+
 ## Próximo trabajo
 
 1. Probar el AppImage en la ROG Ally con Linux y el APK en la tablet Android.
@@ -77,9 +91,9 @@ configuración y cuentas guardadas. No publicar credenciales para reproducirlo.
 ## Continuar en otra PC
 
 ```sh
-git clone https://github.com/manuelgzz/LunarNX.git
+git clone --branch develop https://github.com/manuelgzz/LunarNX.git
 cd LunarNX
-git switch port/ps-touchscreen-linux-android
+git switch develop
 git status --short --branch
 git log -5 --oneline
 ```
@@ -91,7 +105,7 @@ documentos de plataforma y los workflows; clonar no instala dependencias.
 Texto para iniciar una sesión nueva:
 
 > Continúa el desarrollo de manuelgzz/LunarNX en la rama
-> port/ps-touchscreen-linux-android. Lee AGENTS.md,
+> develop. Lee AGENTS.md,
 > docs/CONTINUAR_DESARROLLO.md y docs/development-log.md. Revisa los últimos
 > commits y GitHub Actions antes de cambiar código. Retoma los pendientes
 > documentados y actualiza el estado y el registro al terminar cada cambio.
@@ -110,7 +124,7 @@ un entorno de desarrollo Codex Cloud.
 Desde web/escritorio, si la función está disponible en la cuenta:
 
 1. Crear un entorno en Work in > Cloud > Create environment.
-2. Conectar GitHub, seleccionar manuelgzz/LunarNX y usar la rama del port al
+2. Conectar GitHub, seleccionar manuelgzz/LunarNX y usar la rama develop al
    iniciar la tarea; comprobar la rama y el commit dentro del entorno.
 3. Preparar dependencias siguiendo los workflows Linux/Android y sus versiones
    fijadas. Para Switch se necesita Docker/devkitA64; verificar disponibilidad.
