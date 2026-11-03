@@ -1,5 +1,21 @@
 # AGENTS.md
 
+## Session Continuity (required)
+
+At the start of every session, read `docs/CONTINUAR_DESARROLLO.md` and
+`docs/development-log.md`, inspect the branch and recent commits, and check
+relevant CI results. Linux/Android work is on
+`port/ps-touchscreen-linux-android`; do not assume it is merged into main.
+
+The user requires documentation after every completed change. Before reporting
+completion, update both continuity documents and any affected build, packaging,
+or testing guides, preferably in the same commit as the change. Record behavior,
+validation commands/results, remaining limits, and the next actionable step.
+Distinguish implementation, CI validation, and real-device validation. Include
+commit/run/artifact references when available; never invent test results.
+Documentation-only changes need documentation checks, not full binary rebuilds.
+If publication is unavailable, report exactly what remains local.
+
 ## Project Context
 
 LunarNX is a Nintendo Switch homebrew Xbox Remote Play client. The codebase is
