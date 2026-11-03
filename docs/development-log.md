@@ -8,7 +8,7 @@
 - Los tres workflows compilan develop; main conserva su línea estable.
 - Guías y AGENTS.md apuntan ahora a develop. Se registra origen y procedimiento
   en docs/branch-consolidation.md.
-- Estado de consolidación: pendiente de validación CI y retirada de ramas.
+- Estado de consolidación: completada; CI Linux, Android y Switch exitosa y ramas anteriores retiradas.
 - Validación final y enlaces: docs/consolidation-validation.md. El cierre del
   PR #2 y retirada de ramas se ejecutan solo después de tres builds exitosos,
   comprobación de SHA y de ancestros. Hardware sigue pendiente.

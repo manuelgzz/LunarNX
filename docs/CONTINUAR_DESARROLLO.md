@@ -61,7 +61,7 @@ demuestra fluidez o aceleración física en la tablet o ROG Ally.
 
 ## Validación de la consolidación
 
-Estado de consolidación: pendiente de validación CI y retirada de ramas.
+Estado de consolidación: completada; CI Linux, Android y Switch exitosa y ramas anteriores retiradas.
 
 Las tres compilaciones se ejecutan en develop: Linux, Android y Switch con
 pruebas host y comprobación BSS. El workflow de consolidación en main retirará
