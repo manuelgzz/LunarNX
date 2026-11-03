@@ -16,7 +16,13 @@
   gamepads táctiles correctos.
 - Problema abierto: en Linux con PlayStation el indicador siempre muestra SW,
   incluso reiniciando la sesión; sin determinar si el cambio de codec es real o
-  solo falla el indicador. Investigar.
+  solo falla el indicador. Revisión de código: el decodificador PS comparte la
+  ruta de aceleración con Xbox (`tryNativeAcceleration`) y el indicador solo
+  cambia tras entregar un cuadro nativo; no se halló un fallo evidente. Se
+  añadieron registros `[video-decode]` (`accelerator-attempt`, códec, decoder,
+  texto de error FFmpeg) para identificar el motivo. Requiere el log del
+  usuario: `~/.cache/lunarnx/lunarnx.log`. Sospechas sin confirmar: libva/
+  controlador del AppImage o FFmpeg sin VA-API. Sin compilar localmente.
 - Sin validación en hardware de la búsqueda automática.
 
 ## 2026-11-02 — Consolidación en develop

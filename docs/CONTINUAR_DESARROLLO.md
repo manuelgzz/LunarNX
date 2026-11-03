@@ -87,8 +87,9 @@ las ramas y consultar Actions antes de continuar.
 3. Probar touchpad PS con uno/dos dedos, clic corto, pulsación sostenida,
    reemplazo de contactos y abrir/cerrar el menú sin dejar contactos atascados.
 4. Validar autenticación real, streaming LAN/PSN, reconexión y suspensión.
-5. Investigar por qué Linux + PlayStation muestra siempre SW (¿VA-API no se
-   usa realmente o falla el indicador?). Revisar logs de decodificación.
+5. Linux + PlayStation muestra siempre SW: compartir las líneas `[video-decode]`
+   de `~/.cache/lunarnx/lunarnx.log` tras iniciar un stream PS (y uno Xbox para
+   comparar) con la nueva compilación; decidir la corrección con ese motivo.
 6. Verificar en hardware la búsqueda LAN automática al abrir PlayStation.
 7. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
    notas y el registro al terminar cada cambio.

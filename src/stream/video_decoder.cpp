@@ -333,14 +333,21 @@ void VideoDecoder::tryNativeAcceleration(const uint8_t* data, size_t len) {
                 supported = true;
     }
     if (!supported) {
-        lunar::persistentEventLog("video-decode", "selected=software reason=vaapi-unavailable");
+        lunar::persistentEventLog("video-decode",
+            "selected=software reason=vaapi-unavailable codec=%s decoder=%s",
+            videoCodecName(video_codec_), codec ? codec->name : "none");
         return;
     }
 #endif
     if (!codec || !previous || len > 1024 * 1024) {
-        lunar::persistentEventLog("video-decode", "selected=software reason=decoder-unavailable");
+        lunar::persistentEventLog("video-decode",
+            "selected=software reason=decoder-unavailable codec=%s decoder=%s previous=%d bytes=%zu",
+            videoCodecName(video_codec_), codec ? codec->name : "none",
+            previous ? 1 : 0, len);
         return;
     }
+    lunar::persistentEventLog("video-decode", "accelerator-attempt codec=%s bytes=%zu",
+                              videoCodecName(video_codec_), len);
     AVCodecContext* next = avcodec_alloc_context3(codec);
     if (!next) return;
     next->width = previous->width;
@@ -370,8 +377,11 @@ void VideoDecoder::tryNativeAcceleration(const uint8_t* data, size_t len) {
 #endif
     if (result >= 0) result = avcodec_open2(next, codec, nullptr);
     if (result < 0) {
+        char error_text[AV_ERROR_MAX_STRING_SIZE]{};
+        av_strerror(result, error_text, sizeof(error_text));
         lunar::persistentEventLog("video-decode",
-            "selected=software reason=accelerator-open-failed kind=%d error=%d", kind, result);
+            "selected=software reason=accelerator-open-failed kind=%d codec=%s error=%d (%s)",
+            kind, videoCodecName(video_codec_), result, error_text);
         avcodec_free_context(&next);
         av_buffer_unref(&hw_device_ctx_);
         return;

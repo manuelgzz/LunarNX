@@ -98,6 +98,10 @@ The performance overlay shows VA-API, MediaCodec, or SW only after that decoder
 produces an image. MediaCodec identifies the Android decoding service; whether
 a vendor hardware codec is selected must be confirmed on the device.
 Private application logs record accelerator opening and fallback events.
+On Linux the log is `~/.cache/lunarnx/lunarnx.log` (or under `$XDG_CACHE_HOME`);
+search for `[video-decode]`. `accelerator-attempt` followed by
+`accelerator-opened` means VA-API was opened; `selected=software reason=...`
+states why it was not (including the FFmpeg error text when opening fails).
 
 If opening fails, software continues with the original random-access frame.
 A runtime codec/transfer error or 120 input access units without an output
