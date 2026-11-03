@@ -29,7 +29,7 @@ comprobar la consolidación; esto no significa que el port esté fusionado a mai
 
 ## Compilaciones y retirada de ramas
 
-Estado de consolidación: pendiente de validación CI y retirada de ramas.
+Estado de consolidación: completada; CI Linux, Android y Switch exitosa y ramas anteriores retiradas.
 
 Los workflows Linux, Android y Switch aceptan develop. Antes de retirar ramas,
 el workflow de consolidación comprueba que los tres resultados corresponden al
