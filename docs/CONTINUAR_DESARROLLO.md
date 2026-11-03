@@ -114,6 +114,29 @@ bitrate o causa de las pausas. No son validación en hardware de este nuevo camb
 Prioridad: comparar Automático y Software en Xbox/Linux, después PS/Linux y
 Xbox/Android, con el indicador visible y las mismas condiciones de red/calidad.
 
+## Gamepad táctil Linux/Android
+
+El PR #3 también incorpora un gamepad táctil con perfiles Xbox y PlayStation.
+En ajustes de cada plataforma → controles: activar/desactivar y opacidad
+10/25/50/75/100%; ambas preferencias son independientes entre Xbox y PS.
+Predeterminado oculto, opacidad 50%. En una sesión se accede con `...` arriba a
+la derecha → ajustes; guardar y volver aplica visibilidad/opacidad sin reiniciar.
+
+Incluye sticks, cruceta, botones frontales, hombros/gatillos, clics de sticks,
+View/Menu/Xbox o Share/Options/PS, y clic de touchpad PS. Mientras está visible,
+PS usa únicamente el rectángulo central como touchpad; ocultarlo recupera la
+pantalla completa. Los dedos se asignan al control en el que empezaron y no
+saltan entre botones/sticks y touchpad al arrastrar. Abrir menús, perder foco y
+cambiar de modo suelta los controles y exige levantar los dedos retenidos.
+El touchpad del mando físico sigue disponible. Xbox captura y micrófono/mute
+DualSense no están soportados por la ruta de entrada/audio actual.
+
+Validación de este incremento: compilación Linux Docker, 4 pruebas nativas y
+12 portables exitosas, navegación de ajustes y replay PS H.264 720p con gamepad.
+Pendiente nueva CI Android/Switch y pruebas multitáctiles reales en tablet/Ally.
+Las nuevas opciones no modifican el lector HID/touchpad de Switch. Ver registro
+de desarrollo y guía de empaquetado para comportamiento y límites.
+
 ## Próximo trabajo
 
 1. Probar el AppImage en la ROG Ally con Linux y el APK en la tablet Android.

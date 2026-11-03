@@ -19,7 +19,8 @@ foreach(name IN ITEMS
     operation_generation
     stream_input_router
     native_touchpad
-    native_decode_mode)
+    native_decode_mode
+    touch_gamepad)
     add_executable(${name}_test "${LUNARNX_ROOT}/tests/${name}_test.cpp")
     target_link_libraries(${name}_test PRIVATE Threads::Threads)
     target_include_directories(${name}_test PRIVATE "${LUNARNX_ROOT}/src")

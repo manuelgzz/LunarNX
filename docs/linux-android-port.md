@@ -14,6 +14,9 @@ remains a separate implementation until an explicit migration decision.
 
 The native interface, integrated PlayStation runtime, development AppImage/APK,
 VA-API/MediaCodec software-recovery path and PS touchscreen work are implemented.
+Native touch gamepads now provide per-platform visibility/opacity, sticks and
+buttons, and a dedicated PS touchpad area while visible. With controls hidden,
+the PS touchscreen remains a fullscreen touchpad. See packaging.md.
 See [continuity status](CONTINUAR_DESARROLLO.md) and [packaging](packaging.md)
 for current evidence and remaining device validation. The foundation and
 milestones below are historical planning context, not a current completion list.

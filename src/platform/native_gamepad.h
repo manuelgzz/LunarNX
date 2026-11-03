@@ -4,6 +4,7 @@
 #include <vector>
 #include "../input/gamepad_reader.h"
 #include "native_touch.h"
+#include "../input/touch_gamepad.h"
 
 namespace lunar::platform {
 // Stable masks used by LunarNX's existing per-platform configuration files.
@@ -30,6 +31,10 @@ struct NativeMotion {
     std::array<float, 3> gyro{}, accel{};
 };
 std::vector<NativeTouch> nativeTouches();
+void configureNativeTouchGamepad(bool enabled, bool playstation, bool suppressed);
+input::TouchGamepad::Snapshot nativeTouchGamepadSnapshot();
+bool consumeNativeTouchMenuRequest();
+bool nativeTouchGamepadEnabled();
 NativeMotion nativeMotion();
 uint64_t nativeButtons();
 input::GamepadState nativeGamepad(const input::ButtonMapping& mapping);

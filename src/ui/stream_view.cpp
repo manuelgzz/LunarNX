@@ -6,6 +6,7 @@
 #include "ps_settings_activity.h"
 #include "stream_settings_activity.h"
 #include "ui_style.h"
+#include "touch_gamepad_view.h"
 #include "../diagnostics.h"
 #include "../platform/network_worker.h"
 #include "../stream/media_pipeline.h"
@@ -169,6 +170,9 @@ public:
         (void)style;
         (void)ctx;
         if (!runtime_ || runtime_->getStreamPlatform() != app::StreamPlatform::PlayStation) return;
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+        if (platform::nativeTouchGamepadEnabled()) return;
+#endif
         const auto feedback = runtime_->getTouchpadFeedback();
         const bool has_points = std::any_of(feedback.points.begin(), feedback.points.end(),
             [](const app::TouchpadFeedbackPoint& point) { return point.active; });
@@ -281,6 +285,9 @@ StreamView::StreamView(std::shared_ptr<app::IStreamRuntime> runtime)
 StreamView::~StreamView() {
     alive_->store(false);
     terminal_stop_->store(true);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    platform::configureNativeTouchGamepad(false, false, true);
+#endif
     lifecycle_generation_->invalidate();
     runtime_->setVideoPresentationSuspended(false);
     runtime_->requestStop();
@@ -454,6 +461,19 @@ brls::View* StreamView::createContentView() {
     touchpad_feedback->setHeight(brls::Application::ORIGINAL_WINDOW_HEIGHT);
     touchpad_feedback->setDetachedPosition(0, 0);
     root->addView(touchpad_feedback);
+
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    auto alive = alive_;
+    touch_gamepad_view_ = new TouchGamepadView([this, alive]() {
+        if (alive->load() && !terminal_stop_->load()) setQuickMenuVisible(true);
+    });
+    touch_gamepad_view_->setWidth(brls::Application::ORIGINAL_WINDOW_WIDTH);
+    touch_gamepad_view_->setHeight(brls::Application::ORIGINAL_WINDOW_HEIGHT);
+    touch_gamepad_view_->detach();
+    touch_gamepad_view_->setDetachedPosition(0, 0);
+    root->addView(touch_gamepad_view_);
+    applyNativeTouchSettings();
+#endif
 
     // The menu remains detached and hidden until the button chord is pressed.
     quick_menu_ = new brls::Box(brls::Axis::COLUMN);
@@ -781,6 +801,9 @@ void StreamView::stopAndReturn() {
     runtime_->requestStop();
     if (confirm_box_) confirm_box_->setVisibility(brls::Visibility::GONE);
     showStoppingOverlay();
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    platform::configureNativeTouchGamepad(false, false, true);
+#endif
     brls::Application::blockInputs();
     running_ = false;
     runtime_->inputRouter().setOwner(input::StreamInputOwner::Game);
@@ -845,6 +868,23 @@ void StreamView::setQuickMenuVisible(bool visible) {
     }
 }
 
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+void StreamView::applyNativeTouchSettings() {
+    int opacity;
+    if (runtime_->getStreamPlatform() == app::StreamPlatform::PlayStation) {
+        const auto settings = loadPsSettings();
+        touch_gamepad_enabled_ = settings.touch_gamepad_enabled;
+        opacity = settings.touch_gamepad_opacity;
+    } else {
+        const auto settings = loadStreamSettings();
+        touch_gamepad_enabled_ = settings.touch_gamepad_enabled;
+        opacity = settings.touch_gamepad_opacity;
+    }
+    if (touch_gamepad_view_) touch_gamepad_view_->setControlOpacity(opacity);
+    updateInputOwnership();
+}
+#endif
+
 void StreamView::updateInputOwnership() {
     const bool ui_owns_input = quick_menu_visible_ || child_activity_visible_ ||
         exit_pending_.load() || backgrounded_.load() ||
@@ -852,6 +892,11 @@ void StreamView::updateInputOwnership() {
     runtime_->inputRouter().setOwner(ui_owns_input
         ? input::StreamInputOwner::Ui
         : input::StreamInputOwner::Game);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    platform::configureNativeTouchGamepad(touch_gamepad_enabled_,
+        runtime_->getStreamPlatform() == app::StreamPlatform::PlayStation,
+        ui_owns_input || terminal_stop_->load() || stop_started_.load());
+#endif
 }
 
 void StreamView::onPause() {
@@ -863,6 +908,9 @@ void StreamView::onPause() {
 
 void StreamView::onResume() {
     child_activity_visible_ = false;
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    applyNativeTouchSettings();
+#endif
     runtime_->setVideoPresentationSuspended(false);
     updateInputOwnership();
     if (deferred_stop_.exchange(false)) {

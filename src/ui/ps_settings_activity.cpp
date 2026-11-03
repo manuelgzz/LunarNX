@@ -1,6 +1,7 @@
 #if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_settings_activity.h"
 #include "button_mapping_activity.h"
+#include "touch_gamepad_settings.h"
 #include "ui_style.h"
 #include "../common.h"
 #include <cJSON.h>
@@ -50,6 +51,11 @@ bool writeConfig(cJSON* root) {
 PsSettingsSnapshot loadPsSettings() {
     PsSettingsSnapshot out;
     cJSON* root = readConfig();
+    const cJSON* touch_enabled = cJSON_GetObjectItem(root, "ps_touch_gamepad_enabled");
+    if (cJSON_IsBool(touch_enabled)) out.touch_gamepad_enabled = cJSON_IsTrue(touch_enabled);
+    const cJSON* touch_opacity = cJSON_GetObjectItem(root, "ps_touch_gamepad_opacity");
+    if (cJSON_IsNumber(touch_opacity))
+        out.touch_gamepad_opacity = std::clamp(touch_opacity->valueint, 10, 100);
     const cJSON* native_mode = cJSON_GetObjectItem(root, "ps_native_decode_mode");
     out.native_decode_mode = stream::parseNativeDecodeMode(
         cJSON_IsString(native_mode) ? native_mode->valuestring : nullptr);
@@ -74,6 +80,11 @@ PsSettingsSnapshot loadPsSettings() {
 
 bool savePsSettings(const PsSettingsSnapshot& settings) {
     cJSON* root = readConfig();
+    cJSON_DeleteItemFromObject(root, "ps_touch_gamepad_enabled");
+    cJSON_AddBoolToObject(root, "ps_touch_gamepad_enabled", settings.touch_gamepad_enabled);
+    cJSON_DeleteItemFromObject(root, "ps_touch_gamepad_opacity");
+    cJSON_AddNumberToObject(root, "ps_touch_gamepad_opacity",
+                            std::clamp(settings.touch_gamepad_opacity, 10, 100));
     cJSON_DeleteItemFromObject(root, "ps_native_decode_mode");
     cJSON_AddStringToObject(root, "ps_native_decode_mode",
                             stream::nativeDecodeModeName(settings.native_decode_mode));
@@ -141,6 +152,9 @@ brls::View* PsSettingsActivity::createContentView() {
         brls::getStr("lunarnx/ps/settings_controller_section"),
         brls::getStr("lunarnx/ps/settings_controller_detail")));
     auto* controller_card = makeUiCard(); controller_card->setPadding(4, 8, 4, 8);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    addTouchGamepadSettings(controller_card, settings_);
+#endif
     auto* vibration = new brls::BooleanCell();
     vibration->init(brls::getStr("lunarnx/settings/vibration"),
         settings_.vibration_enabled,

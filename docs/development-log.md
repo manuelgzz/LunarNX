@@ -1,5 +1,36 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-02 — Gamepads táctiles Xbox/PlayStation en Linux y Android
+
+- Continuación del PR #3, rama feature/native-decoder-selection. Añadido
+  TouchGamepad con geometría compartida entre entrada y dibujo, asignación de
+  dedos hasta su liberación, sticks analógicos, cruceta/diagonales, botones,
+  gatillos y zona touchpad PS. El mando virtual se combina después del mapeo
+  físico para que las etiquetas indiquen directamente el botón remoto.
+- Ajustes independientes Xbox/PS de visibilidad y opacidad 10–100%; oculto/50%
+  de inicio. Desde el menú `...`, guardar los ajustes y volver aplica cambios
+  durante la sesión. El menú sigue accesible sin un mando físico ni gamepad.
+- Con gamepad visible, solo la zona PS central produce contactos, escalados al
+  touchpad remoto. Al ocultarlo vuelve el touchpad de pantalla completa. No se
+  cambia el touchpad de un mando físico. Menús, foco, cambios de modo y salida
+  limpian contactos/botones y evitan reutilizar dedos mantenidos sobre la UI.
+- La ruta Switch se conserva. No se implementan captura Xbox ni micrófono/mute
+  DualSense: no tienen una ruta de entrada/audio disponible en esta app.
+- Pruebas: build Linux nativo en Docker Ubuntu 24.04; CTest nativo 4/4, portable
+  12/12 PASS. touch_gamepad cubre botones, ambos sticks, combinaciones con dos
+  contactos PS, límites del pad, separación de dedos, menú/foco y cambio de modo.
+  Persistencia Xbox/PS y coexistencia con mando SDL en native_ui_settings.
+- Smoke local de navegación y replay PS H.264 a 720p con gamepad visible: PASS.
+  Regresiones de ciclo de vida/cierre UI, navegación y orden/cancelación Xbox,
+  junto con git diff --check: PASS. Revisión visual del overlay con captura de
+  framebuffer; se usa la fuente registrada por Borealis para las etiquetas.
+- CI añade gamepad Xbox visible al mock nativo y PS visible en replay H.264,
+  conservando PS fullscreen en HEVC. No se ejecutó Ryubing localmente: la
+  cobertura nueva es la ruta nativa; la compilación NRO se comprueba en CI.
+  Nuevos APK/NRO y pruebas físicas multitáctiles permanecen pendientes.
+- Siguiente paso: probar simultáneamente sticks, gatillos y botones, transiciones
+  menú/juego, transparencia y gesto/clic PS con gamepad visible y oculto.
+
 ## 2026-11-02 — Selección de decoder e indicador Linux/Android
 
 - Rama `feature/native-decoder-selection`, basada en develop. Xbox (consola y

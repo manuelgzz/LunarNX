@@ -82,8 +82,8 @@ The Android checks establish compilation, linking and APK packaging. They do
 not establish successful startup or console streaming on a physical tablet.
 Both builds attempt native acceleration with software recovery as described
 below. Real account/console sessions, physical controls, suspend/resume and
-Android performance still need device testing. Configurable on-screen gamepad
-buttons and actual hardware acceleration/performance validation remain pending.
+Android performance still need device testing. On-screen controls are implemented
+as described below; actual hardware acceleration/performance validation remains pending.
 
 ## Native video acceleration
 
@@ -110,7 +110,7 @@ fallback and CPU replay, not actual hardware performance.
 
 ## PlayStation touchscreen touchpad (Linux and Android)
 
-During a PlayStation stream, the touchscreen sends up to two independent
+With the touch gamepad hidden during a PlayStation stream, the touchscreen sends up to two independent
 contacts to the remote PS4/PS5 touchpad, including stationary contacts and small
 movements. Coordinates use the entire application window and are mapped to the
 console touchpad dimensions. Swipe to send a touchpad gesture; briefly tap to
@@ -152,3 +152,36 @@ codec on some devices, so its label alone does not prove physical acceleration.
 
 For a useful comparison, keep resolution, bitrate, console, network and game
 scene unchanged, and compare Automatic with Software across separate sessions.
+
+## Touch gamepad (Linux and Android)
+
+Open Xbox or PlayStation settings, then the controller section. **Touch gamepad**
+shows/hides the on-screen controls. **Touch gamepad opacity** offers 10%, 25%,
+50%, 75% and 100% (higher means more visible). Each platform saves its own
+visibility and opacity; defaults are hidden and 50%.
+
+While streaming, tap **...** at the upper right, open Stream settings, change
+these preferences, save and return to the game. Visibility and opacity take
+effect immediately on returning; no stream restart is required. The app menu
+remains accessible when the gamepad is hidden. The existing edge swipe also works.
+
+Controls include both analog sticks, their L3/R3 (LS/RS) clicks, D-pad,
+face buttons, L1/R1/L2/R2 (LB/RB/LT/RT), Share/Create + Options (View + Menu),
+and PS/Xbox Home. PlayStation also includes a touchpad-click button and a
+central touchpad rectangle with up to two contacts, tap-click and hold-click.
+The dedicated Xbox capture button and DualSense microphone/mute function are
+not available through the current input protocol/app audio path.
+
+With the gamepad visible, only contacts beginning inside the PS touchpad
+rectangle become touchpad gestures. Movement is scaled to the entire console
+pad and clamped at its boundary. A finger starting on a stick, button or video
+cannot enter the pad until it lifts. Multiple fingers can use sticks, buttons
+and the pad simultaneously. Hiding the gamepad restores fullscreen PS touchpad
+behavior, including the existing menu-edge reservation. The physical controller
+and its touchpad continue to work alongside on-screen controls.
+
+Opening menus, changing mode, losing window focus or ending a session releases
+virtual input; fingers held across the transition must lift before they can
+control the game again. A touchscreen exposing SDL touch events is required;
+mouse clicks are not synthesized as gamepad contacts. This feature is native
+Linux/Android only; Switch retains its existing HID/touchpad path.

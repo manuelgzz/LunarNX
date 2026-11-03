@@ -29,6 +29,9 @@ private:
     class StreamOverlay* overlay_ = nullptr;
     class PerfOverlay* perf_overlay_ = nullptr;
 #if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    class TouchGamepadView* touch_gamepad_view_ = nullptr;
+    bool touch_gamepad_enabled_ = false;
+    void applyNativeTouchSettings();
     brls::Label* decoder_label_ = nullptr;
     bool show_decoder_overlay_ = false;
 #endif
