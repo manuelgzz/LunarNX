@@ -1,5 +1,18 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-02 — Consolidación en develop
+
+- Integración con historial del último port, main y estabilidad/diagnósticos.
+- Conservada la corrección de liberación CShader antes de CMemPool y las
+  opciones DROP_DIAG/LATENCY_DIAG de Switch.
+- Los tres workflows compilan develop; main conserva su línea estable.
+- Guías y AGENTS.md apuntan ahora a develop. Se registra origen y procedimiento
+  en docs/branch-consolidation.md.
+- Estado de consolidación: pendiente de validación CI y retirada de ramas.
+- Validación final y enlaces: docs/consolidation-validation.md. El cierre del
+  PR #2 y retirada de ramas se ejecutan solo después de tres builds exitosos,
+  comprobación de SHA y de ancestros. Hardware sigue pendiente.
+
 ## 2026-11-02 — Documentación para retomar desde otro equipo
 
 - Añadido `docs/CONTINUAR_DESARROLLO.md` con rama activa, estado, pruebas,

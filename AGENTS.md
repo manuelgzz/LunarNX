@@ -4,8 +4,10 @@
 
 At the start of every session, read `docs/CONTINUAR_DESARROLLO.md` and
 `docs/development-log.md`, inspect the branch and recent commits, and check
-relevant CI results. Linux/Android work is on
-`port/ps-touchscreen-linux-android`; do not assume it is merged into main.
+relevant CI results. All ongoing Switch/Linux/Android integration work is on `develop`.
+Keep `main` as the stable line; do not merge development into main until validated.
+Use short-lived feature/fix branches targeting develop. Consult
+`docs/branch-consolidation.md` for source history and cleanup status.
 
 The user requires documentation after every completed change. Before reporting
 completion, update both continuity documents and any affected build, packaging,

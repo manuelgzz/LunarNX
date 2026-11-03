@@ -1,0 +1,157 @@
+name: Finalize branch consolidation
+
+on:
+  workflow_run:
+    workflows: ["Build Nintendo Switch application", "Linux port foundation", "Android ARM64 APK"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: one-time-branch-consolidation
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.head_branch == 'develop' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Verify all builds, retire incorporated branches, and record results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // One-time cleanup requested by the repository owner.
+            const target = "61ae4a714459fb579a9436cbc39dac41f02ba413";
+            const sources = [
+              {
+                "branch": "port/linux-native-foundation",
+                "sha": "91397c8d415673814eba4e42294e230e7bdbfde4"
+              },
+              {
+                "branch": "port/ps-touchscreen-linux-android",
+                "sha": "020c77829c4550dad9e49a2094f10ee187dcec66"
+              },
+              {
+                "branch": "fix/stability-crash-diagnostics",
+                "sha": "73ab6641167a57581f4876878739d724ba5d1b2d"
+              }
+            ];
+            const { owner, repo } = context.repo;
+            if (context.payload.workflow_run.head_sha !== target ||
+                context.payload.workflow_run.head_branch !== 'develop' ||
+                context.payload.workflow_run.head_repository.full_name !== owner + '/' + repo) {
+              core.info('Unrelated run; no changes.');
+              return;
+            }
+            const head = (await github.rest.git.getRef({owner, repo, ref: 'heads/develop'})).data.object.sha;
+            if (head !== target) {
+              core.info('Develop moved or cleanup already completed; no changes.');
+              return;
+            }
+            const workflows = [
+              ['.github/workflows/build-switch.yml', 'Switch'],
+              ['.github/workflows/linux-port.yml', 'Linux'],
+              ['.github/workflows/android-port.yml', 'Android']
+            ];
+            const all = (await github.rest.actions.listWorkflowRunsForRepo({
+              owner, repo, head_sha: target, per_page: 100
+            })).data.workflow_runs;
+            const verified = [];
+            for (const [path, platform] of workflows) {
+              const matches = all.filter(r => r.path === path && r.head_sha === target &&
+                r.head_branch === 'develop' && r.event === 'push');
+              matches.sort((a,b) => b.id - a.id);
+              const run = matches[0];
+              if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+                core.info(platform + ' validation is missing, pending or failed; keep all branches.');
+                return;
+              }
+              verified.push({platform, url: run.html_url, id: run.id});
+            }
+            // Check every source BEFORE deleting any source. A changed branch needs review.
+            const present = [];
+            for (const source of sources) {
+              let ref;
+              try {
+                ref = (await github.rest.git.getRef({owner, repo, ref: 'heads/' + source.branch})).data;
+              } catch (error) {
+                if (error.status === 404) continue; // Allows a safe retry after partial cleanup.
+                throw error;
+              }
+              if (ref.object.sha !== source.sha) throw new Error('Source moved: ' + source.branch);
+              const comparison = (await github.rest.repos.compareCommits({
+                owner, repo, base: source.sha, head: target
+              })).data;
+              if (comparison.behind_by !== 0 || comparison.merge_base_commit.sha !== source.sha) {
+                throw new Error('Source is not an ancestor: ' + source.branch);
+              }
+              present.push(source);
+            }
+            for (const source of present) {
+              const ref = (await github.rest.git.getRef({
+                owner, repo, ref: 'heads/' + source.branch
+              })).data;
+              if (ref.object.sha !== source.sha) throw new Error('Source moved before deletion: ' + source.branch);
+              await github.rest.git.deleteRef({owner, repo, ref: 'heads/' + source.branch});
+              core.info('Retired ' + source.branch);
+            }
+            const pr = (await github.rest.pulls.get({owner, repo, pull_number: 2})).data;
+            if (pr.state === 'open' && pr.head.ref === 'port/linux-native-foundation') {
+              await github.rest.pulls.update({owner, repo, pull_number: 2, state: 'closed'});
+            }
+            const pending = 'Estado de consolidación: pendiente de validación CI y retirada de ramas.';
+            const complete = 'Estado de consolidación: completada; CI Linux, Android y Switch exitosa y ramas anteriores retiradas.';
+            const report = [
+              '# Validación de la consolidación', '',
+              complete, '',
+              'Commit integrado y validado: `' + target + '`.', '',
+              'Fecha UTC: ' + new Date().toISOString() + '.', '',
+              '| Plataforma | GitHub Actions | Resultado |', '| --- | --- | --- |',
+              ...verified.map(r => '| ' + r.platform + ' | [' + r.id + '](' + r.url + ') | success |'),
+              '', 'Ramas retiradas después de comprobar SHA e inclusión de su historial:', '',
+              ...sources.map(s => '- `' + s.branch + '`: `' + s.sha + '`.'),
+              '', 'Main se conserva como línea estable; develop contiene la integración.',
+              'El PR #2 queda cerrado por sustitución, sin fusionar el port a main.',
+              'Los commits de origen permanecen como ancestros del commit integrado.',
+              'Comprobaciones locales: contratos de workflows Switch/release, bloqueo de',
+              'presentación (50 intercalados), YAML y siete escenarios de retirada de ramas: PASS.',
+              'No se ha creado un entorno Codex Cloud ni validado rendimiento en hardware.',
+              ''
+            ].join('\n');
+            // Documentation updates use the latest branch head and fast-forward updates.
+            // GITHUB_TOKEN documentation commits do not recursively start push workflows.
+            for (const branch of ['develop', 'main']) {
+              const branchHead = (await github.rest.git.getRef({owner, repo, ref: 'heads/' + branch})).data.object.sha;
+              const base = (await github.rest.git.getCommit({owner, repo, commit_sha: branchHead})).data;
+              const entries = [{
+                path: 'docs/consolidation-validation.md', mode: '100644', type: 'blob', content: report
+              }];
+              for (const path of ['docs/CONTINUAR_DESARROLLO.md', 'docs/branch-consolidation.md', 'docs/development-log.md']) {
+                const file = (await github.rest.repos.getContent({owner, repo, path, ref: branchHead})).data;
+                const old = Buffer.from(file.content, 'base64').toString('utf8');
+                const content = old.replaceAll(pending, complete);
+                if (old !== content) entries.push({path, mode: '100644', type: 'blob', content});
+              }
+              const tree = (await github.rest.git.createTree({
+                owner, repo, base_tree: base.tree.sha, tree: entries
+              })).data.sha;
+              const commit = (await github.rest.git.createCommit({
+                owner, repo, message: 'docs: record successful consolidation and retired branches',
+                tree, parents: [branchHead]
+              })).data.sha;
+              await github.rest.git.updateRef({
+                owner, repo, ref: 'heads/' + branch, sha: commit, force: false
+              });
+            }
+            core.info('Consolidation validated, old branches retired, and both documentation copies updated.');
