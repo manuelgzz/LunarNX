@@ -21,6 +21,9 @@
   contactos PS, límites del pad, separación de dedos, menú/foco y cambio de modo.
   La tolerancia de clic/gestos sigue en píxeles originales para no amplificar el
   pequeño temblor del dedo al escalar la zona dedicada a coordenadas de consola.
+  El overlay ocupa el viewport completo, incluyendo tablets no 16:9, para
+  alinear las zonas táctiles normalizadas con los controles dibujados; revisión
+  visual y replay al redimensionar la ventana a 1280x800: PASS.
   Persistencia Xbox/PS y coexistencia con mando SDL en native_ui_settings.
 - Smoke local de navegación y replay PS H.264 a 720p con gamepad visible: PASS.
   Regresiones de ciclo de vida/cierre UI, navegación y orden/cancelación Xbox,

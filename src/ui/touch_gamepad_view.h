@@ -9,7 +9,17 @@ namespace lunar::ui {
 
 class TouchGamepadView : public brls::View {
 public:
-    explicit TouchGamepadView(std::function<void()> menu) : menu_(std::move(menu)) {}
+    explicit TouchGamepadView(std::function<void()> menu) : menu_(std::move(menu)) {
+        resize_subscription_ = brls::Application::getWindowSizeChangedEvent()->subscribe(
+            [this]() { onWindowSizeChanged(); });
+    }
+    ~TouchGamepadView() override {
+        brls::Application::getWindowSizeChangedEvent()->unsubscribe(resize_subscription_);
+    }
+    void onWindowSizeChanged() override {
+        setWidth(brls::Application::contentWidth);
+        setHeight(brls::Application::contentHeight);
+    }
     void setControlOpacity(int percent) { opacity_ = std::clamp(percent, 10, 100) / 100.0f; }
 
     void draw(NVGcontext* vg, float x, float y, float width, float height,
@@ -99,6 +109,7 @@ public:
         nvgRestore(vg);
     }
 private:
+    brls::VoidEvent::Subscription resize_subscription_;
     float opacity_ = 0.5f;
     std::function<void()> menu_;
 };

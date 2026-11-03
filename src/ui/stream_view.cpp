@@ -467,8 +467,10 @@ brls::View* StreamView::createContentView() {
     touch_gamepad_view_ = new TouchGamepadView([this, alive]() {
         if (alive->load() && !terminal_stop_->load()) setQuickMenuVisible(true);
     });
-    touch_gamepad_view_->setWidth(brls::Application::ORIGINAL_WINDOW_WIDTH);
-    touch_gamepad_view_->setHeight(brls::Application::ORIGINAL_WINDOW_HEIGHT);
+    // SDL touch coordinates span the whole window, including non-16:9 tablets.
+    // Let the drawing cover the same viewport instead of a fixed 720px height.
+    touch_gamepad_view_->setWidth(brls::Application::contentWidth);
+    touch_gamepad_view_->setHeight(brls::Application::contentHeight);
     touch_gamepad_view_->detach();
     touch_gamepad_view_->setDetachedPosition(0, 0);
     root->addView(touch_gamepad_view_);
