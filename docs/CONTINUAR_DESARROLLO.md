@@ -92,8 +92,12 @@ Validación local: Linux compilado en Docker Ubuntu 24.04, 4 pruebas nativas y
 modos de CPU/recuperación, smoke de ajustes y reproducción PS H.264 a 720p
 con indicador habilitado. Detalles en development-log.md. Android APK y
 Switch NRO no compilados en esta sesión; sin validación nueva en hardware.
-La rama aún no se publicó: el envío requiere autorización explícita tras el
-rechazo de la revisión automática. No hay CI nueva ni paquetes nuevos en GitHub.
+La rama está publicada con autorización del usuario en el
+[PR #3 hacia develop](https://github.com/manuelgzz/LunarNX/pull/3).
+Linux, Android y Switch se validan mediante sus workflows del PR; consultar
+[ejecuciones de la rama](https://github.com/manuelgzz/LunarNX/actions?query=branch%3Afeature%2Fnative-decoder-selection)
+para resultados y artefactos de cada SHA. La compilación local no sustituye
+el resultado del APK/NRO ni las pruebas en los dispositivos.
 
 ### Pruebas de usuario de la compilación anterior
 

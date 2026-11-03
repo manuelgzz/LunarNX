@@ -37,9 +37,13 @@
 - No se compilaron APK Android ni NRO Switch; tampoco se ejecutó Ryubing.
   La cobertura de reproducción de este cambio nativo es el smoke Linux anterior.
   Los workflows existentes pueden validar los tres destinos al abrir un PR.
-- Todo permanece local. La revisión automática rechazó el envío de la rama
-  porque no había autorización explícita para publicar código/documentación.
-  No se abrió PR ni se iniciaron compilaciones nuevas en GitHub Actions.
+- Publicación autorizada por el usuario: rama publicada y
+  [PR #3 hacia develop](https://github.com/manuelgzz/LunarNX/pull/3) abierto.
+  Los workflows Linux, Android y Switch se disparan desde el PR; consultar
+  [Actions de la rama](https://github.com/manuelgzz/LunarNX/actions?query=branch%3Afeature%2Fnative-decoder-selection)
+  para resultado, SHA y disponibilidad de cada artefacto. La validación local
+  anterior corresponde al cambio de código d7dfb9a; este seguimiento es
+  exclusivamente documental y no modifica binarios.
 - Siguiente paso: comparar modos con indicador visible y registrar commit,
   decoder efectivo, fluidez, audio y controles, priorizando Xbox/Linux.
 
