@@ -32,8 +32,27 @@ android {
             version '3.22.1'
         }
     }
+    signingConfigs {
+        lunarDevelopment {
+            def keystorePath = System.getenv('LUNARNX_KEYSTORE_PATH')
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storeType 'PKCS12'
+                storePassword System.getenv('LUNARNX_KEYSTORE_PASSWORD')
+                keyAlias 'lunarnx'
+                keyPassword System.getenv('LUNARNX_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
-        debug { debuggable true }
+        debug {
+            debuggable true
+            // Stable development key supplied by CI secrets so updates install
+            // over the previous build; without it Gradle keeps its debug key.
+            if (System.getenv('LUNARNX_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.lunarDevelopment
+            }
+        }
         release { minifyEnabled false }
     }
     packaging { jniLibs { useLegacyPackaging false } }

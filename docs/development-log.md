@@ -1,5 +1,19 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-03 — Firma estable del APK de desarrollo
+
+- Generada una clave PKCS12 de desarrollo (RSA 3072, ~30 años) fuera del repo y
+  guardada como secretos `ANDROID_KEYSTORE_BASE64` y `ANDROID_KEYSTORE_PASSWORD`.
+  Copia de respaldo local del usuario en `C:\Users\manue\LunarNX-signing\`
+  (no versionar).
+- `android/app/build.gradle` firma `debug` con esa clave si existe
+  `LUNARNX_KEYSTORE_PATH`; el workflow la decodifica desde los secretos y,
+  sin secretos (forks), conserva la clave debug de Gradle. Se imprime el
+  certificado con `apksigner --print-certs`.
+- Límite: el primer APK con esta clave aún exige desinstalar el anterior; los
+  siguientes se actualizan sin perder configuración. Pendiente verificar en CI
+  y en el dispositivo (instalación encima de la anterior).
+
 ## 2026-11-03 — Búsqueda LAN automática al abrir PlayStation
 
 - Rama `manuelgzz-ps-auto-search-lan` sobre `develop` (c1cd30f).

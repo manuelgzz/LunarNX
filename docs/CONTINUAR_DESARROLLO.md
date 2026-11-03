@@ -94,9 +94,10 @@ las ramas y consultar Actions antes de continuar.
 7. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
    notas y el registro al terminar cada cambio.
 
-El APK es de desarrollo y puede cambiar de firma entre compilaciones. No
-desinstalar para resolver una actualización sin considerar que se perderán
-configuración y cuentas guardadas. No publicar credenciales para reproducirlo.
+El APK de desarrollo ahora se firma con una clave estable (secretos de GitHub):
+tras desinstalar una última vez, las actualizaciones conservan configuración y
+cuentas. Ver [empaquetado](packaging.md). No publicar credenciales para
+reproducirlo.
 
 ## Continuar en otra PC
 
