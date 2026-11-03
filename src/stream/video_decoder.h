@@ -42,6 +42,7 @@ public:
     /// On desktop uses the selected standard FFmpeg software decoder.
     /// Subclasses reset their own policy state before delegating here.
     virtual bool initialize(int width = 1280, int height = 720);
+    void setNativeDecodeMode(NativeDecodeMode mode) { native_decode_mode_ = mode; }
     void setVideoBackend(VideoBackend backend) { video_backend_ = backend; }
     void setVideoCodec(VideoCodec codec) { video_codec_ = codec; }
 
@@ -90,6 +91,7 @@ protected:
     unsigned native_frames_without_output_ = 0;
 #endif
 
+    NativeDecodeMode native_decode_mode_ = NativeDecodeMode::Automatic;
     VideoBackend video_backend_ =
 #ifdef __SWITCH__
         VideoBackend::HardwareZeroCopy;

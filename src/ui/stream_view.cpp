@@ -424,6 +424,25 @@ brls::View* StreamView::createContentView() {
     overlay_->setDetachedPosition(0, 0);
     root->addView(overlay_);
 
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    show_decoder_overlay_ = loadStreamSettings().show_decoder_overlay;
+    decoder_label_ = new brls::Label();
+    decoder_label_->setFontSize(16);
+    decoder_label_->setTextColor(p.text);
+    decoder_label_->setBackgroundColor(p.stream_overlay);
+    decoder_label_->setHorizontalAlign(brls::HorizontalAlign::CENTER);
+    decoder_label_->setVerticalAlign(brls::VerticalAlign::CENTER);
+    decoder_label_->setWidth(240);
+    decoder_label_->setHeight(36);
+    decoder_label_->detach();
+    decoder_label_->setDetachedPosition(
+        brls::Application::ORIGINAL_WINDOW_WIDTH - 250,
+        brls::Application::ORIGINAL_WINDOW_HEIGHT - 46);
+    decoder_label_->setVisibility(show_decoder_overlay_
+        ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    root->addView(decoder_label_);
+#endif
+
     // Detailed stats overlay (starts hidden)
     perf_overlay_ = new PerfOverlay(&runtime_->getPerfStats(), runtime_->getStreamPlatform());
     perf_overlay_->detach();
@@ -439,8 +458,19 @@ brls::View* StreamView::createContentView() {
     // The menu remains detached and hidden until the button chord is pressed.
     quick_menu_ = new brls::Box(brls::Axis::COLUMN);
     quick_menu_->setWidth(520);
-    quick_menu_->setHeight(620);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    constexpr int quickMenuHeight = 680;
+    constexpr int quickMenuButtonHeight = 56;
+#else
+    constexpr int quickMenuHeight = 620;
+    constexpr int quickMenuButtonHeight = 64;
+#endif
+    quick_menu_->setHeight(quickMenuHeight);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    quick_menu_->setPadding(24, 32, 16, 32);
+#else
     quick_menu_->setPadding(28, 32, 24, 32);
+#endif
     quick_menu_->setBackgroundColor(nvgRGBA(48, 48, 48, 248));
     quick_menu_->setBorderThickness(1);
     quick_menu_->setBorderColor(p.border);
@@ -449,7 +479,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->detach();
     quick_menu_->setDetachedPosition(
         (brls::Application::ORIGINAL_WINDOW_WIDTH - 520) / 2,
-        (brls::Application::ORIGINAL_WINDOW_HEIGHT - 620) / 2);
+        (brls::Application::ORIGINAL_WINDOW_HEIGHT - quickMenuHeight) / 2);
     quick_menu_->registerAction(brls::getStr("lunarnx/stream/menu_close"),
         brls::ControllerButton::BUTTON_B,
         [this](brls::View*) -> bool {
@@ -472,7 +502,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->addView(menu_hint);
 
     performance_button_ = new brls::Button();
-    performance_button_->setHeight(64);
+    performance_button_->setHeight(quickMenuButtonHeight);
     performance_button_->setStyle(&brls::BUTTONSTYLE_DEFAULT);
     performance_button_->setCornerRadius(0);
     performance_button_->setHighlightCornerRadius(3);
@@ -482,9 +512,25 @@ brls::View* StreamView::createContentView() {
         return true;
     });
     quick_menu_->addView(performance_button_);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    auto* show_decoder = new brls::BooleanCell();
+    show_decoder->setHeight(48);
+    show_decoder->init(brls::getStr("lunarnx/settings/show_decoder"),
+        show_decoder_overlay_, [this](bool enabled) {
+            show_decoder_overlay_ = enabled;
+            decoder_label_->setVisibility(enabled
+                ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+            auto settings = loadStreamSettings();
+            settings.show_decoder_overlay = enabled;
+            if (!saveStreamSettings(settings)) {
+                brls::Application::notify(brls::getStr("lunarnx/settings/save_failed"));
+            }
+        });
+    quick_menu_->addView(show_decoder);
+#endif
 
     auto* settings_button = new brls::Button();
-    settings_button->setHeight(64);
+    settings_button->setHeight(quickMenuButtonHeight);
     settings_button->setStyle(&brls::BUTTONSTYLE_DEFAULT);
     settings_button->setCornerRadius(0);
     settings_button->setHighlightCornerRadius(3);
@@ -509,7 +555,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->addView(settings_button);
 
     auto* mapping_button = new brls::Button();
-    mapping_button->setHeight(64);
+    mapping_button->setHeight(quickMenuButtonHeight);
     mapping_button->setStyle(&brls::BUTTONSTYLE_DEFAULT);
     mapping_button->setCornerRadius(0);
     mapping_button->setHighlightCornerRadius(3);
@@ -528,7 +574,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->addView(mapping_button);
 
     auto* platform_button = new brls::Button();
-    platform_button->setHeight(64);
+    platform_button->setHeight(quickMenuButtonHeight);
     platform_button->setStyle(&brls::BUTTONSTYLE_DEFAULT);
     platform_button->setCornerRadius(0);
     platform_button->setHighlightCornerRadius(3);
@@ -544,7 +590,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->addView(platform_button);
 
     resume_button_ = new brls::Button();
-    resume_button_->setHeight(64);
+    resume_button_->setHeight(quickMenuButtonHeight);
     resume_button_->setStyle(&brls::BUTTONSTYLE_DEFAULT);
     resume_button_->setCornerRadius(0);
     resume_button_->setHighlightCornerRadius(3);
@@ -560,7 +606,7 @@ brls::View* StreamView::createContentView() {
     quick_menu_->addView(spacer);
 
     disconnect_button_ = new brls::Button();
-    disconnect_button_->setHeight(64);
+    disconnect_button_->setHeight(quickMenuButtonHeight);
     disconnect_button_->setStyle(&brls::BUTTONSTYLE_BORDERED);
     disconnect_button_->setCornerRadius(0);
     disconnect_button_->setHighlightCornerRadius(3);
@@ -920,13 +966,20 @@ void StreamView::runLoop() {
             runtime_->getDefaultVideoBackend());
 #ifdef LUNARNX_NATIVE_UI
         const int decoder = p.native_video_decoder.load();
-        video_backend = decoder == 1 ? "VA-API" : decoder == 2 ? "MediaCodec" : "SW";
+        video_backend = p.video_frames.load() == 0 ? "..."
+            : decoder == 1 ? "VA-API" : decoder == 2 ? "MediaCodec" : "SW";
 #endif
         std::string video_codec = stream::videoCodecOverlayName(
             runtime_->getVideoCodec());
         auto alive = alive_;
         brls::sync([alive, this, fps, res, video_backend, video_codec]() {
             if (!alive->load()) return;
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+            if (decoder_label_) {
+                decoder_label_->setText(brls::getStr("lunarnx/settings/decoder") +
+                    ": " + video_backend);
+            }
+#endif
             if (overlay_) overlay_->update(fps, res, video_codec);
             if (perf_overlay_) {
                 perf_overlay_->update(fps, res, video_backend, video_codec);

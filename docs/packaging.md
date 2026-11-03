@@ -128,3 +128,27 @@ contacts; mouse input is not interpreted as a touchpad contact.
 The portable native_touchpad regression covers gesture and input lifecycle
 behavior shared by both builds. Real touchscreen-to-console operation still
 requires testing on Linux hardware and an Android device.
+
+## Selecting decoding and showing its status
+
+On Linux and Android, open the Xbox or PlayStation settings and select
+**Video decoder** independently for that platform:
+
+- **Automatic (hardware with CPU fallback)**: try VA-API on Linux or MediaCodec
+  on Android, retaining CPU recovery if acceleration cannot open or fails.
+- **Software**: decode on the CPU without trying acceleration.
+
+Save the settings and start a new session. Changing the preference during a
+stream takes effect on the next session. Xbox Remote Play and Cloud share the
+Xbox preference; PlayStation keeps its own. Older configuration files default
+to Automatic. `LUNARNX_VIDEO_DECODE=software` remains a CPU-only diagnostic override.
+
+Enable **Show active decoder** in general settings or in the in-game menu to
+show a small indicator without the full performance panel. This shared setting
+is saved for Xbox and PlayStation and defaults to hidden. It reads `...` before
+the first decoded frame, then VA-API, MediaCodec or SW according to actual frame
+output; a fallback updates the indicator to SW. MediaCodec can select a software
+codec on some devices, so its label alone does not prove physical acceleration.
+
+For a useful comparison, keep resolution, bitrate, console, network and game
+scene unchanged, and compare Automatic with Software across separate sessions.

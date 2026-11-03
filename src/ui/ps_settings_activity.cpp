@@ -50,6 +50,9 @@ bool writeConfig(cJSON* root) {
 PsSettingsSnapshot loadPsSettings() {
     PsSettingsSnapshot out;
     cJSON* root = readConfig();
+    const cJSON* native_mode = cJSON_GetObjectItem(root, "ps_native_decode_mode");
+    out.native_decode_mode = stream::parseNativeDecodeMode(
+        cJSON_IsString(native_mode) ? native_mode->valuestring : nullptr);
     const cJSON* resolution = cJSON_GetObjectItem(root, "ps_resolution");
     if (cJSON_IsNumber(resolution) && resolution->valueint >= 1080) { out.width = 1920; out.height = 1080; }
     const cJSON* bitrate = cJSON_GetObjectItem(root, "ps_bitrate_kbps");
@@ -71,6 +74,9 @@ PsSettingsSnapshot loadPsSettings() {
 
 bool savePsSettings(const PsSettingsSnapshot& settings) {
     cJSON* root = readConfig();
+    cJSON_DeleteItemFromObject(root, "ps_native_decode_mode");
+    cJSON_AddStringToObject(root, "ps_native_decode_mode",
+                            stream::nativeDecodeModeName(settings.native_decode_mode));
     cJSON_DeleteItemFromObject(root, "ps_resolution");
     cJSON_AddNumberToObject(root, "ps_resolution", settings.height);
     cJSON_DeleteItemFromObject(root, "ps_bitrate_kbps");
@@ -118,6 +124,18 @@ brls::View* PsSettingsActivity::createContentView() {
                 ? stream::VideoCodec::HEVC : stream::VideoCodec::H264;
         });
     card->addView(codec);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    auto* decoder = new brls::SelectorCell();
+    decoder->init(brls::getStr("lunarnx/settings/decoder"),
+        {brls::getStr("lunarnx/settings/decoder_auto"),
+         brls::getStr("lunarnx/settings/decoder_software")},
+        settings_.native_decode_mode == stream::NativeDecodeMode::Software ? 1 : 0,
+        [this](int selected) {
+            settings_.native_decode_mode = selected == 1
+                ? stream::NativeDecodeMode::Software : stream::NativeDecodeMode::Automatic;
+        });
+    card->addView(decoder);
+#endif
     root->addView(card);
     root->addView(makeSectionHeader(
         brls::getStr("lunarnx/ps/settings_controller_section"),

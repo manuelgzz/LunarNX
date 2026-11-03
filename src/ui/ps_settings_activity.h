@@ -3,11 +3,13 @@
 
 #include <borealis.hpp>
 #include "../stream/video_codec.h"
+#include "../stream/native_decode_mode.h"
 #include <functional>
 
 namespace lunar::ui {
 
 struct PsSettingsSnapshot {
+    stream::NativeDecodeMode native_decode_mode = stream::NativeDecodeMode::Automatic;
     int width = 1280;
     int height = 720;
     int bitrate_kbps = 10000;

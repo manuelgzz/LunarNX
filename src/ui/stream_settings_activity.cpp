@@ -258,6 +258,11 @@ StreamSettingsSnapshot loadStreamSettings() {
     cJSON* root = readConfig();
     if (!root) return settings;
 
+    const cJSON* show_decoder = cJSON_GetObjectItemCaseSensitive(root, "show_decoder_overlay");
+    if (cJSON_IsBool(show_decoder)) settings.show_decoder_overlay = cJSON_IsTrue(show_decoder);
+    const cJSON* native_mode = cJSON_GetObjectItemCaseSensitive(root, "xbox_native_decode_mode");
+    settings.native_decode_mode = stream::parseNativeDecodeMode(
+        cJSON_IsString(native_mode) ? native_mode->valuestring : nullptr);
     const cJSON* resolution = cJSON_GetObjectItemCaseSensitive(root, "resolution");
     if (cJSON_IsNumber(resolution) && resolution->valueint >= 1080) {
         settings.width = 1920;
@@ -300,6 +305,11 @@ StreamSettingsSnapshot loadStreamSettings() {
 bool saveStreamSettings(const StreamSettingsSnapshot& settings) {
     cJSON* root = readConfig();
     if (!root) return false;
+    cJSON_DeleteItemFromObject(root, "show_decoder_overlay");
+    cJSON_AddBoolToObject(root, "show_decoder_overlay", settings.show_decoder_overlay);
+    cJSON_DeleteItemFromObject(root, "xbox_native_decode_mode");
+    cJSON_AddStringToObject(root, "xbox_native_decode_mode",
+                            stream::nativeDecodeModeName(settings.native_decode_mode));
     cJSON_DeleteItemFromObject(root, "resolution");
     cJSON_AddNumberToObject(root, "resolution", settings.height);
     cJSON_DeleteItemFromObject(root, "bitrate");
@@ -417,6 +427,13 @@ brls::View* StreamSettingsActivity::createContentView() {
     }
 
     if (addGlobalSettings) {
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    auto* show_decoder = new brls::BooleanCell();
+    show_decoder->init(brls::getStr("lunarnx/settings/show_decoder"),
+        settings_.show_decoder_overlay,
+        [this](bool enabled) { settings_.show_decoder_overlay = enabled; });
+    video_card->addView(show_decoder);
+#endif
 #ifdef __SWITCH__
     int backend_index = 0;
     if (settings_.video_backend == stream::VideoBackend::HardwareCopyOut) {
@@ -441,14 +458,23 @@ brls::View* StreamSettingsActivity::createContentView() {
             if (ctrl_) ctrl_->setDefaultVideoBackend(settings_.video_backend);
         });
 
-#else
-    auto* decoder = new brls::SelectorCell();
-    decoder->init(brls::getStr("lunarnx/settings/decoder"),
-        {brls::getStr("lunarnx/settings/decoder_software")}, 0,
-        [this](int) { settings_.video_backend = stream::VideoBackend::Software; });
-#endif
     video_card->addView(decoder);
+#endif
     }
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    if (addXboxSettings) {
+        auto* decoder = new brls::SelectorCell();
+        decoder->init(brls::getStr("lunarnx/settings/decoder"),
+            {brls::getStr("lunarnx/settings/decoder_auto"),
+             brls::getStr("lunarnx/settings/decoder_software")},
+            settings_.native_decode_mode == stream::NativeDecodeMode::Software ? 1 : 0,
+            [this](int selected) {
+                settings_.native_decode_mode = selected == 1
+                    ? stream::NativeDecodeMode::Software : stream::NativeDecodeMode::Automatic;
+            });
+        video_card->addView(decoder);
+    }
+#endif
     root->addView(video_card);
 
     if (addGlobalSettings) {

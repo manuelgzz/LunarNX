@@ -104,6 +104,7 @@ jobs:
           decode_state=$(mktemp -d)
           XDG_CACHE_HOME="$decode_state" LUNARNX_VAAPI_DEVICE=/dev/lunarnx-missing-render-device build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
           XDG_CACHE_HOME="$decode_state" LUNARNX_VIDEO_DECODE=software build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          XDG_CACHE_HOME="$decode_state" LUNARNX_TEST_SETTINGS_SOFTWARE=1 build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
           XDG_CACHE_HOME="$decode_state" LUNARNX_TEST_RUNTIME_FALLBACK=1 build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
           python3 - "$decode_state" <<'PY'
           from pathlib import Path
@@ -111,6 +112,7 @@ jobs:
           text = (Path(sys.argv[1]) / "lunarnx/lunarnx.log").read_text()
           assert "selected=software reason=accelerator-open-failed" in text
           assert "selected=software reason=override" in text
+          assert "selected=software reason=settings" in text
           assert "selected=software reason=accelerator-runtime-failure" in text
           PY
       - name: Verify native HTTPS trust and failure diagnostics
