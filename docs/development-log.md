@@ -11,8 +11,11 @@
   sin secretos (forks), conserva la clave debug de Gradle. Se imprime el
   certificado con `apksigner --print-certs`.
 - Límite: el primer APK con esta clave aún exige desinstalar el anterior; los
-  siguientes se actualizan sin perder configuración. Pendiente verificar en CI
-  y en el dispositivo (instalación encima de la anterior).
+  siguientes se actualizan sin perder configuración. CI del PR #4 (65b87bb):
+  Linux 41730421568, Android 41730421547 y Switch 41730421485 en success; el
+  APK quedó firmado con el certificado SHA-256
+  `1b6e5bf0…09068` (clave estable). Pendiente verificar en el dispositivo la
+  instalación encima de una compilación posterior con esa misma clave.
 
 ## 2026-11-03 — Búsqueda LAN automática al abrir PlayStation
 
