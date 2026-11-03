@@ -100,7 +100,8 @@ public:
                 // menu-edge reservation after converting into PS coordinates.
                 out.touchpad.push_back({touch.finger_id,
                     scale(touch.x, region.x, region.width, 1279),
-                    scale(touch.y, region.y, region.height, 719), false});
+                    scale(touch.y, region.y, region.height, 719), false,
+                    (region.width - 1) / 1279.0f, (region.height - 1) / 719.0f});
             } else if (control == Control::LeftStick || control == Control::RightStick) {
                 out.active[static_cast<size_t>(control)] = true;
                 float dx = (float(touch.x) - region.x - region.width / 2) / 65;

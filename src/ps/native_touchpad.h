@@ -94,8 +94,8 @@ public:
             }
             slot->x = std::min(touch.x, 1279u);
             slot->y = std::min(touch.y, 719u);
-            const int64_t dx = int64_t(slot->x) - slot->down_x;
-            const int64_t dy = int64_t(slot->y) - slot->down_y;
+            const double dx = (int64_t(slot->x) - slot->down_x) * touch.gesture_scale_x;
+            const double dy = (int64_t(slot->y) - slot->down_y) * touch.gesture_scale_y;
             distance_ = std::max(distance_, uint64_t(dx * dx + dy * dy));
         }
         if (!multiple_ && distance_ <= 100 &&

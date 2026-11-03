@@ -66,6 +66,17 @@ int main() {
     const auto time = lunar::ps::NativeTouchpad::Clock::now();
     auto gesture = gestures.update(state.touchpad, false, time);
     assert(gesture.points[0].active && gesture.points[0].x > 1184);
+    // Reducing the pad must not magnify normal finger jitter into a swipe.
+    {
+        Pad small; small.configure(true, true, false); small.update({});
+        lunar::ps::NativeTouchpad tap;
+        auto contact = at(C::Touchpad);
+        tap.update(small.update({contact}).touchpad, false, time);
+        contact.x += 4; contact.y += 4;
+        auto held = tap.update(small.update({contact}).touchpad, false,
+                              time + std::chrono::milliseconds(600));
+        assert(held.pressed && held.gesture == lunar::ps::NativeTouchpad::Gesture::LongPress);
+    }
     // Opening UI, changing modes, or losing focus releases everything and fences held fingers.
     pad.configure(true, true, true);
     assert(pad.update({finger}).touchpad.empty());

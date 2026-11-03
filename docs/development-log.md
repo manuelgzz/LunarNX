@@ -19,6 +19,8 @@
 - Pruebas: build Linux nativo en Docker Ubuntu 24.04; CTest nativo 4/4, portable
   12/12 PASS. touch_gamepad cubre botones, ambos sticks, combinaciones con dos
   contactos PS, límites del pad, separación de dedos, menú/foco y cambio de modo.
+  La tolerancia de clic/gestos sigue en píxeles originales para no amplificar el
+  pequeño temblor del dedo al escalar la zona dedicada a coordenadas de consola.
   Persistencia Xbox/PS y coexistencia con mando SDL en native_ui_settings.
 - Smoke local de navegación y replay PS H.264 a 720p con gamepad visible: PASS.
   Regresiones de ciclo de vida/cierre UI, navegación y orden/cancelación Xbox,
