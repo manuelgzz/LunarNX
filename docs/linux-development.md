@@ -4,7 +4,9 @@ Linux has a native Borealis interface and a separate diagnostic CLI target.
 The interface renders Xbox video inside its own window and retains separate
 Xbox and PlayStation settings and controller mappings. It does not launch
 Chiaki-ng or XStreamingDesktop applications. The PlayStation tile now opens the integrated console, pairing and PSN flows.
-Native hardware decoding is still pending. Real console/account sessions need validation.
+VA-API decoding with software recovery is implemented; actual acceleration and
+performance on hardware remain unverified. See [packaging.md](packaging.md).
+Real console/account sessions need validation.
 
 ## Build
 

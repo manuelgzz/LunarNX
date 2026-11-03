@@ -10,7 +10,15 @@ embed their windows. Use the existing LunarNX controllers and media pipeline.
 The user's existing fork is manuelgzz/LunarNX. The Python Dualstream launcher
 remains a separate implementation until an explicit migration decision.
 
-## Verified starting point
+## Current status
+
+The native interface, integrated PlayStation runtime, development AppImage/APK,
+VA-API/MediaCodec software-recovery path and PS touchscreen work are implemented.
+See [continuity status](CONTINUAR_DESARROLLO.md) and [packaging](packaging.md)
+for current evidence and remaining device validation. The foundation and
+milestones below are historical planning context, not a current completion list.
+
+## Historical starting point
 
 - Makefile.desktop is a macOS test build using xcrun, Homebrew and Apple frameworks.
 - CMake's desktop target uses src/platform/desktop_main.cpp, a console-oriented
@@ -61,7 +69,8 @@ another integration. Do not claim that an empty APK is a streaming port.
 
 ## Validation limits
 
-No Switch source or build files are changed by this foundation.
-Real-console streaming, authentication, Borealis Linux UI, AppImage, APK and real-device
-testing remain outstanding. In particular, tests do not prove that every Chiaki
-or XStreaming setting exists in LunarNX; settings need an explicit parity audit.
+The foundation originally left the interface and packages outstanding; later
+commits implemented them. CI and packaging evidence do not establish real-console
+streaming, authentication or actual device performance. Tests do not prove that
+every Chiaki or XStreaming setting exists in LunarNX; settings need an explicit
+parity audit. See the current continuity status before planning work.

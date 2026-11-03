@@ -202,6 +202,11 @@ Before reporting a problem, read [SECURITY.md](SECURITY.md). Never post token fi
 
 ## Development
 
+For the Linux/Android fork and cross-device handoff, start with the
+[continuity guide](docs/CONTINUAR_DESARROLLO.md) and
+[development log](docs/development-log.md). The active port is on
+`port/ps-touchscreen-linux-android`, not `main`.
+
 Build instructions, validation commands, architecture, and testing notes are documented in the [development guide](docs/development.md). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Switch builds must use Docker/devkitA64. The combined Xbox/PlayStation build uses the bundled curl 8.x WebSocket build and the legacy local libpeer path:

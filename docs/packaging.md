@@ -80,10 +80,10 @@ window. The packaged AppImage repeats navigation and PlayStation replay tests.
 
 The Android checks establish compilation, linking and APK packaging. They do
 not establish successful startup or console streaming on a physical tablet.
-Both builds currently use software video decoding. Real account/console
-sessions, physical controls, suspend/resume and Android performance still need
-device testing. Configurable on-screen gamepad buttons and native hardware
-video acceleration remain platform work.
+Both builds attempt native acceleration with software recovery as described
+below. Real account/console sessions, physical controls, suspend/resume and
+Android performance still need device testing. Configurable on-screen gamepad
+buttons and actual hardware acceleration/performance validation remain pending.
 
 ## Native video acceleration
 
