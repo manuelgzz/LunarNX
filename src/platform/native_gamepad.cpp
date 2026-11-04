@@ -7,6 +7,30 @@ namespace lunar::platform {
 namespace {
 std::mutex mutex;
 SDL_GameController* controller = nullptr;
+input::TouchGamepad touch_gamepad;
+bool touch_menu_requested = false;
+
+std::vector<NativeTouch> screenTouches() {
+    std::vector<NativeTouch> touches;
+    for (int device = 0; device < SDL_GetNumTouchDevices(); ++device) {
+        const auto id = SDL_GetTouchDevice(device);
+        if (id == SDL_MOUSE_TOUCHID) continue;
+        for (int index = 0; index < SDL_GetNumTouchFingers(id); ++index) {
+            const auto* finger = SDL_GetTouchFinger(id, index);
+            if (finger) touches.push_back({static_cast<uint64_t>(finger->id),
+                static_cast<uint32_t>(std::clamp(finger->x, 0.0f, 1.0f) * 1279),
+                static_cast<uint32_t>(std::clamp(finger->y, 0.0f, 1.0f) * 719), true});
+        }
+        if (!touches.empty()) break;
+    }
+    return touches;
+}
+
+input::TouchGamepad::Snapshot sampleTouchGamepad() {
+    auto snapshot = touch_gamepad.update(screenTouches());
+    touch_menu_requested |= snapshot.menu_requested;
+    return snapshot;
+}
 
 input::GamepadState rawState() {
     input::GamepadState state;
@@ -130,7 +154,31 @@ input::GamepadState nativeGamepad(const input::ButtonMapping& mapping) {
     else if (!state.left_trigger) state.left_trigger = 65535;
     if (!state.rt) state.right_trigger = 0;
     else if (!state.right_trigger) state.right_trigger = 65535;
-    return state;
+    // Touch controls use remote button names directly, independent of physical remapping.
+    return input::TouchGamepad::merge(state, sampleTouchGamepad().gamepad);
+}
+
+void configureNativeTouchGamepad(bool enabled, bool playstation, bool suppressed) {
+    std::lock_guard<std::mutex> lock(mutex);
+    touch_gamepad.configure(enabled, playstation, suppressed);
+    if (suppressed) touch_menu_requested = false;
+}
+
+input::TouchGamepad::Snapshot nativeTouchGamepadSnapshot() {
+    std::lock_guard<std::mutex> lock(mutex);
+    return sampleTouchGamepad();
+}
+
+bool consumeNativeTouchMenuRequest() {
+    std::lock_guard<std::mutex> lock(mutex);
+    const bool requested = touch_menu_requested;
+    touch_menu_requested = false;
+    return requested;
+}
+
+bool nativeTouchGamepadEnabled() {
+    std::lock_guard<std::mutex> lock(mutex);
+    return touch_gamepad.enabled();
 }
 
 void nativeRumble(float left, float right, float left_trigger, float right_trigger, uint32_t duration) {
@@ -160,18 +208,9 @@ std::vector<NativeTouch> nativeTouches() {
         // Prefer the physical controller touchpad when it is in use.
         if (!result.empty()) return result;
     }
-    // SDL touch snapshots are updated by Borealis' main event loop.
-    for (int device = 0; device < SDL_GetNumTouchDevices(); ++device) {
-        const auto id = SDL_GetTouchDevice(device);
-        if (id == SDL_MOUSE_TOUCHID) continue; // Ignore SDL's synthetic mouse touches.
-        for (int index = 0; index < SDL_GetNumTouchFingers(id); ++index) {
-            const auto* finger = SDL_GetTouchFinger(id, index);
-            if (finger) result.push_back({static_cast<uint64_t>(finger->id),
-                coordinate(finger->x, 1279), coordinate(finger->y, 719), true});
-        }
-        if (!result.empty()) break;
-    }
-    return result;
+    // The virtual pad owns its fingers from down to up. Only the dedicated
+    // PS region reaches the touchpad when the gamepad is visible.
+    return sampleTouchGamepad().touchpad;
 }
 
 NativeMotion nativeMotion() {
@@ -193,5 +232,7 @@ void shutdownNativeGamepad() {
     std::lock_guard<std::mutex> lock(mutex);
     if (controller) SDL_GameControllerClose(controller);
     controller = nullptr;
+    touch_gamepad = {};
+    touch_menu_requested = false;
 }
 } // namespace lunar::platform

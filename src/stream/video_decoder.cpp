@@ -311,8 +311,9 @@ AVPixelFormat nativeVaapiFormat(AVCodecContext*, const AVPixelFormat* formats) {
 void VideoDecoder::tryNativeAcceleration(const uint8_t* data, size_t len) {
     native_attempted_ = true;
     const char* preference = std::getenv("LUNARNX_VIDEO_DECODE");
-    if (preference && std::strcmp(preference, "software") == 0) {
-        lunar::persistentEventLog("video-decode", "selected=software reason=override");
+    if (nativeSoftwareRequested(native_decode_mode_, preference)) {
+        lunar::persistentEventLog("video-decode", "selected=software reason=%s",
+            native_decode_mode_ == NativeDecodeMode::Software ? "settings" : "override");
         return;
     }
     auto* previous = static_cast<AVCodecContext*>(codec_ctx_);
