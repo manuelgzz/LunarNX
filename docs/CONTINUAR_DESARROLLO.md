@@ -1,6 +1,12 @@
 # Continuar DualStream / LunarNX desde otra sesión
 
-Última actualización: 2026-11-02 (America/Chihuahua).
+Última actualización: 2026-11-03 (America/Chihuahua).
+
+Novedades (rama `manuelgzz-ps-auto-search-lan`, pendiente de CI y merge a
+develop): al abrir PlayStation se ejecuta automáticamente "Search LAN" en
+segundo plano en las tres compilaciones. Pruebas en Android: Xbox más estable
+por software, PlayStation mejor con MediaCodec, gamepads táctiles correctos.
+Abierto: en Linux con PlayStation el indicador siempre muestra SW.
 Repositorio de trabajo: https://github.com/manuelgzz/LunarNX
 
 ## Leer primero
@@ -148,12 +154,17 @@ de desarrollo y guía de empaquetado para comportamiento y límites.
 3. Probar touchpad PS con uno/dos dedos, clic corto, pulsación sostenida,
    reemplazo de contactos y abrir/cerrar el menú sin dejar contactos atascados.
 4. Validar autenticación real, streaming LAN/PSN, reconexión y suspensión.
-5. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
+5. Linux + PlayStation muestra siempre SW: compartir las líneas `[video-decode]`
+   de `~/.cache/lunarnx/lunarnx.log` tras iniciar un stream PS (y uno Xbox para
+   comparar) con la nueva compilación; decidir la corrección con ese motivo.
+6. Verificar en hardware la búsqueda LAN automática al abrir PlayStation.
+7. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
    notas y el registro al terminar cada cambio.
 
-El APK es de desarrollo y puede cambiar de firma entre compilaciones. No
-desinstalar para resolver una actualización sin considerar que se perderán
-configuración y cuentas guardadas. No publicar credenciales para reproducirlo.
+El APK de desarrollo ahora se firma con una clave estable (secretos de GitHub):
+tras desinstalar una última vez, las actualizaciones conservan configuración y
+cuentas. Ver [empaquetado](packaging.md). No publicar credenciales para
+reproducirlo.
 
 ## Continuar en otra PC
 

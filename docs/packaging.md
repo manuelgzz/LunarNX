@@ -43,9 +43,18 @@ user's XDG directories.
 
 Install LunarNX-Android-arm64-debug.apk on an ARM64 device running Android 10
 (API 29) or newer with OpenGL ES 3.0. This is a debug-signed development APK.
-CI uses a fresh debug signing key; future development builds may require an
-uninstall before installing a differently signed APK. Uninstalling removes
-the app's private account/configuration files.
+CI signs development APKs with a stable key kept in the repository secrets
+`ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD` (PKCS12, alias
+`lunarnx`, `android/app/build.gradle` signing config `lunarDevelopment`, enabled
+by `LUNARNX_KEYSTORE_PATH`). Builds signed with the same key update in place and
+keep accounts/configuration. The first APK signed with this key still requires
+one uninstall of any APK signed with an earlier random debug key. Builds
+without the secrets (forks, local Gradle) use Gradle's debug key and may
+require an uninstall. Uninstalling removes the app's private account and
+configuration files. The key is for development only: never commit it; keep a
+private backup (losing it forces one more uninstall) and rotate it by
+replacing both secrets. The CI log prints the certificate digest
+(`apksigner --print-certs`) so a build can be compared across runs.
 
 The app packages its interface, resources, SDL, FFmpeg, Opus, legacy libpeer
 and Chiaki. Configuration, accounts and cached files stay in Android's private
@@ -98,6 +107,10 @@ The performance overlay shows VA-API, MediaCodec, or SW only after that decoder
 produces an image. MediaCodec identifies the Android decoding service; whether
 a vendor hardware codec is selected must be confirmed on the device.
 Private application logs record accelerator opening and fallback events.
+On Linux the log is `~/.cache/lunarnx/lunarnx.log` (or under `$XDG_CACHE_HOME`);
+search for `[video-decode]`. `accelerator-attempt` followed by
+`accelerator-opened` means VA-API was opened; `selected=software reason=...`
+states why it was not (including the FFmpeg error text when opening fails).
 
 If opening fails, software continues with the original random-access frame.
 A runtime codec/transfer error or 120 input access units without an output

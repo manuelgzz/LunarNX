@@ -1,5 +1,56 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-03 — Búsqueda LAN automática más robusta (Android/Switch)
+
+- Reporte: en Android la búsqueda automática no se ejecutaba (Linux sí). Causa
+  no confirmada (no hay log del dispositivo). Cambio: un worker espera 400 ms,
+  lanza `startLanDiscovery()` en el hilo de UI y, si 4 s después no hay
+  consolas locales, la repite una vez; registra `Auto Search LAN attempt=N`.
+  Aplica igual a Switch (misma ruta de código; revisado: nifm y difusión
+  dirigida ya existían). Sin validar en dispositivo: si sigue fallando en
+  Android, compartir `lunarnx.log` (líneas `ui-ps` y `ps-manager`).
+
+## 2026-11-03 — Firma estable del APK de desarrollo
+
+- Generada una clave PKCS12 de desarrollo (RSA 3072, ~30 años) fuera del repo y
+  guardada como secretos `ANDROID_KEYSTORE_BASE64` y `ANDROID_KEYSTORE_PASSWORD`.
+  Copia de respaldo local del usuario en `C:\Users\manue\LunarNX-signing\`
+  (no versionar).
+- `android/app/build.gradle` firma `debug` con esa clave si existe
+  `LUNARNX_KEYSTORE_PATH`; el workflow la decodifica desde los secretos y,
+  sin secretos (forks), conserva la clave debug de Gradle. Se imprime el
+  certificado con `apksigner --print-certs`.
+- Límite: el primer APK con esta clave aún exige desinstalar el anterior; los
+  siguientes se actualizan sin perder configuración. CI del PR #4 (65b87bb):
+  Linux 41730421568, Android 41730421547 y Switch 41730421485 en success; el
+  APK quedó firmado con el certificado SHA-256
+  `1b6e5bf0…09068` (clave estable). Pendiente verificar en el dispositivo la
+  instalación encima de una compilación posterior con esa misma clave.
+
+## 2026-11-03 — Búsqueda LAN automática al abrir PlayStation
+
+- Rama `manuelgzz-ps-auto-search-lan` sobre `develop` (c1cd30f).
+- Al abrir la página PlayStation se lanza en segundo plano la misma acción del
+  botón "Search LAN" (`PsActivity::startLanDiscovery`, diferida con
+  `brls::sync`). No valida que la consola esté encendida ni bloquea la interfaz;
+  el botón sigue disponible. Código compartido: aplica a Switch, Linux y Android.
+  No se dispara al reanudar la página ni se lanza el refresco PSN.
+- Validación: `tests/ps_page_flow_test.py` actualizado (antes exigía no
+  descubrir al abrir) y pruebas PS/UI enfocadas pasan; `git diff --check` limpio.
+  No se compiló Switch/Linux/Android localmente: pendiente CI.
+- Pruebas del usuario en Android (reportadas, sin registro formal): Xbox más
+  estable con decodificación por software; PlayStation mejor con MediaCodec;
+  gamepads táctiles correctos.
+- Problema abierto: en Linux con PlayStation el indicador siempre muestra SW,
+  incluso reiniciando la sesión; sin determinar si el cambio de codec es real o
+  solo falla el indicador. Revisión de código: el decodificador PS comparte la
+  ruta de aceleración con Xbox (`tryNativeAcceleration`) y el indicador solo
+  cambia tras entregar un cuadro nativo; no se halló un fallo evidente. Se
+  añadieron registros `[video-decode]` (`accelerator-attempt`, códec, decoder,
+  texto de error FFmpeg) para identificar el motivo. Requiere el log del
+  usuario: `~/.cache/lunarnx/lunarnx.log`. Sospechas sin confirmar: libva/
+  controlador del AppImage o FFmpeg sin VA-API. Sin compilar localmente.
+- Sin validación en hardware de la búsqueda automática.
 ## 2026-11-02 — Gamepads táctiles Xbox/PlayStation en Linux y Android
 
 - Continuación del PR #3, rama feature/native-decoder-selection. Añadido
