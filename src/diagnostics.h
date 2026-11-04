@@ -26,11 +26,18 @@
 #define LUNARNX_LATENCY_DIAGNOSTIC_LOG 0
 #endif
 
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+#include "platform/native_paths.h"
+#endif
+
 namespace lunar {
 
 inline const char* get_diagnostic_log_path() {
 #ifdef __SWITCH__
     return "sdmc:/switch/LunarNX/lunarnx.log";
+#elif defined(LUNARNX_NATIVE_UI)
+    try { return platform::nativePath("lunarnx.log", true); }
+    catch (...) { return "/dev/null"; }
 #else
     return "./lunarnx.log";
 #endif

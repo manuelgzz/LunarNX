@@ -1,19 +1,24 @@
 # Continuar DualStream / LunarNX desde otra sesión
 
-Última actualización: 2026-11-02 (America/Chihuahua).
+Última actualización: 2026-11-03 (America/Chihuahua).
+
+Novedades: todo el trabajo (port Switch/Linux/Android, gamepads táctiles, selector de
+decoder, Search LAN automático en PlayStation, firma estable de Android) está
+consolidado en **main** de manuelgzz/LunarNX (sin PR al repositorio original).
+Pruebas en Android: Xbox más estable por software, PlayStation mejor con
+MediaCodec. Abierto: en Linux con PlayStation el indicador siempre muestra SW
+(pendiente del log [video-decode]). Siguiente: prototipo de generación de frames
+(LSFG) en una rama nueva desde main.
 Repositorio de trabajo: https://github.com/manuelgzz/LunarNX
 
 ## Leer primero
 
-El desarrollo integrado Switch/Linux/Android continúa en **develop**.
-`main` conserva la línea estable. Las ramas del port y diagnóstico se han
-incorporado con su historial en develop; su retirada se condiciona a las tres
-compilaciones exitosas. Consultar [consolidación](branch-consolidation.md).
-La copia de esta guía en main sirve de entrada; el estado vigente está en develop.
+El desarrollo integrado Switch/Linux/Android está ahora en **main**; developse conserva como referencia histórica. Nuevo desarrollo: ramas cortas desde main.
+Consultar [consolidación](branch-consolidation.md).
 
 Leer en este orden: `AGENTS.md`, este documento,
-[registro de cambios](development-log.md), [empaquetado](https://github.com/manuelgzz/LunarNX/blob/develop/docs/packaging.md),
-[Linux](https://github.com/manuelgzz/LunarNX/blob/develop/docs/linux-development.md) y [dirección del port](https://github.com/manuelgzz/LunarNX/blob/develop/docs/linux-android-port.md).
+[registro de cambios](development-log.md), [empaquetado](https://github.com/manuelgzz/LunarNX/blob/main/docs/packaging.md),
+[Linux](https://github.com/manuelgzz/LunarNX/blob/main/docs/linux-development.md) y [dirección del port](https://github.com/manuelgzz/LunarNX/blob/main/docs/linux-android-port.md).
 Los tres últimos documentos están en la rama del port.
 
 DualStream es el nombre usado en las conversaciones para el objetivo de unificar
@@ -70,6 +75,73 @@ contenido en el commit validado. El informe final queda en
 `docs/consolidation-validation.md` cuando finaliza. Si algo falla, conservar
 las ramas y consultar Actions antes de continuar.
 
+## Control de decodificación nativa (Linux/Android)
+
+En la rama `feature/native-decoder-selection`, los ajustes de Xbox y PlayStation
+ofrecen selecciones independientes: Automático (intenta VA-API en Linux o
+MediaCodec en Android, con recuperación por CPU) y Software (CPU). Se guardan
+como `xbox_native_decode_mode` y `ps_native_decode_mode`, y se aplican al iniciar
+la siguiente sesión; no cambian el decoder durante una transmisión activa.
+Los archivos existentes mantienen Automático sin migración. El override de
+pruebas `LUNARNX_VIDEO_DECODE=software` sigue forzando CPU.
+
+Ajustes generales y el menú durante el juego permiten mostrar/ocultar el
+indicador del decoder activo, independientemente de las estadísticas. La
+preferencia compartida `show_decoder_overlay` queda guardada y empieza oculta.
+El indicador muestra `...` antes de producir imagen, después VA-API, MediaCodec
+o SW, según el decoder que entrega cuadros. MediaCodec no acredita por sí solo
+un codec físico del fabricante. Switch conserva sus modos anteriores.
+
+Validación local: Linux compilado en Docker Ubuntu 24.04, 4 pruebas nativas y
+11 portables exitosas, smoke de decodificación H.264/HEVC y audio en cuatro
+modos de CPU/recuperación, smoke de ajustes y reproducción PS H.264 a 720p
+con indicador habilitado. Detalles en development-log.md. Android APK y
+Switch NRO no compilados en esta sesión; sin validación nueva en hardware.
+La rama está publicada con autorización del usuario en el
+[PR #3 hacia develop](https://github.com/manuelgzz/LunarNX/pull/3).
+Linux, Android y Switch se validan mediante sus workflows del PR; consultar
+[ejecuciones de la rama](https://github.com/manuelgzz/LunarNX/actions?query=branch%3Afeature%2Fnative-decoder-selection)
+para resultados y artefactos de cada SHA. La compilación local no sustituye
+el resultado del APK/NRO ni las pruebas en los dispositivos.
+
+### Pruebas de usuario de la compilación anterior
+
+El usuario informa uso de la última compilación disponible (sin SHA identificado),
+a 720p, consolas por cable y tablet Android/ROG Ally Linux por Wi-Fi:
+
+| Plataforma | PlayStation | Xbox |
+| --- | --- | --- |
+| Android | Muy estable | Mejoría considerable, microcongelamientos muy ocasionales |
+| Linux | Estable, microcongelamientos ocasionales | Estable, microcongelamientos frecuentes |
+
+Son observaciones reales del usuario; aún no identifican decoder activo, FPS,
+bitrate o causa de las pausas. No son validación en hardware de este nuevo cambio.
+Prioridad: comparar Automático y Software en Xbox/Linux, después PS/Linux y
+Xbox/Android, con el indicador visible y las mismas condiciones de red/calidad.
+
+## Gamepad táctil Linux/Android
+
+El PR #3 también incorpora un gamepad táctil con perfiles Xbox y PlayStation.
+En ajustes de cada plataforma → controles: activar/desactivar y opacidad
+10/25/50/75/100%; ambas preferencias son independientes entre Xbox y PS.
+Predeterminado oculto, opacidad 50%. En una sesión se accede con `...` arriba a
+la derecha → ajustes; guardar y volver aplica visibilidad/opacidad sin reiniciar.
+
+Incluye sticks, cruceta, botones frontales, hombros/gatillos, clics de sticks,
+View/Menu/Xbox o Share/Options/PS, y clic de touchpad PS. Mientras está visible,
+PS usa únicamente el rectángulo central como touchpad; ocultarlo recupera la
+pantalla completa. Los dedos se asignan al control en el que empezaron y no
+saltan entre botones/sticks y touchpad al arrastrar. Abrir menús, perder foco y
+cambiar de modo suelta los controles y exige levantar los dedos retenidos.
+El touchpad del mando físico sigue disponible. Xbox captura y micrófono/mute
+DualSense no están soportados por la ruta de entrada/audio actual.
+
+Validación de este incremento: compilación Linux Docker, 4 pruebas nativas y
+12 portables exitosas, navegación de ajustes y replay PS H.264 720p con gamepad.
+Pendiente nueva CI Android/Switch y pruebas multitáctiles reales en tablet/Ally.
+Las nuevas opciones no modifican el lector HID/touchpad de Switch. Ver registro
+de desarrollo y guía de empaquetado para comportamiento y límites.
+
 ## Próximo trabajo
 
 1. Probar el AppImage en la ROG Ally con Linux y el APK en la tablet Android.
@@ -81,19 +153,24 @@ las ramas y consultar Actions antes de continuar.
 3. Probar touchpad PS con uno/dos dedos, clic corto, pulsación sostenida,
    reemplazo de contactos y abrir/cerrar el menú sin dejar contactos atascados.
 4. Validar autenticación real, streaming LAN/PSN, reconexión y suspensión.
-5. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
+5. Linux + PlayStation muestra siempre SW: compartir las líneas `[video-decode]`
+   de `~/.cache/lunarnx/lunarnx.log` tras iniciar un stream PS (y uno Xbox para
+   comparar) con la nueva compilación; decidir la corrección con ese motivo.
+6. Verificar en hardware la búsqueda LAN automática al abrir PlayStation.
+7. Corregir problemas reproducibles con pruebas enfocadas y actualizar estas
    notas y el registro al terminar cada cambio.
 
-El APK es de desarrollo y puede cambiar de firma entre compilaciones. No
-desinstalar para resolver una actualización sin considerar que se perderán
-configuración y cuentas guardadas. No publicar credenciales para reproducirlo.
+El APK de desarrollo ahora se firma con una clave estable (secretos de GitHub):
+tras desinstalar una última vez, las actualizaciones conservan configuración y
+cuentas. Ver [empaquetado](packaging.md). No publicar credenciales para
+reproducirlo.
 
 ## Continuar en otra PC
 
 ```sh
-git clone --branch develop https://github.com/manuelgzz/LunarNX.git
+git clone --branch main https://github.com/manuelgzz/LunarNX.git
 cd LunarNX
-git switch develop
+git switch main
 git status --short --branch
 git log -5 --oneline
 ```
@@ -124,7 +201,7 @@ un entorno de desarrollo Codex Cloud.
 Desde web/escritorio, si la función está disponible en la cuenta:
 
 1. Crear un entorno en Work in > Cloud > Create environment.
-2. Conectar GitHub, seleccionar manuelgzz/LunarNX y usar la rama develop al
+2. Conectar GitHub, seleccionar manuelgzz/LunarNX y usar la rama main al
    iniciar la tarea; comprobar la rama y el commit dentro del entorno.
 3. Preparar dependencias siguiendo los workflows Linux/Android y sus versiones
    fijadas. Para Switch se necesita Docker/devkitA64; verificar disponibilidad.

@@ -42,6 +42,7 @@ public:
     /// On desktop uses the selected standard FFmpeg software decoder.
     /// Subclasses reset their own policy state before delegating here.
     virtual bool initialize(int width = 1280, int height = 720);
+    void setNativeDecodeMode(NativeDecodeMode mode) { native_decode_mode_ = mode; }
     void setVideoBackend(VideoBackend backend) { video_backend_ = backend; }
     void setVideoCodec(VideoCodec codec) { video_codec_ = codec; }
 
@@ -79,6 +80,18 @@ protected:
                       int log_index,
                       bool log);
 
+#ifdef LUNARNX_NATIVE_UI
+    void tryNativeAcceleration(const uint8_t* data, size_t len);
+    bool decodeNativeAccessUnit(const uint8_t* data, size_t len,
+                                uint64_t timestamp, int log_index, bool log);
+    void fallBackToSoftware();
+    bool native_attempted_ = false;
+    bool native_active_ = false;
+    int native_decoder_kind_ = 0;
+    unsigned native_frames_without_output_ = 0;
+#endif
+
+    NativeDecodeMode native_decode_mode_ = NativeDecodeMode::Automatic;
     VideoBackend video_backend_ =
 #ifdef __SWITCH__
         VideoBackend::HardwareZeroCopy;

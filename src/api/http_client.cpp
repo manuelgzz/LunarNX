@@ -3,6 +3,7 @@
 #include <chrono>
 #include <curl/curl.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <mutex>
 
@@ -103,6 +104,22 @@ static void log_curl_result(CURL* curl, const char* method, const std::string& u
     curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total);
     curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD, &downloaded);
 
+#ifdef LUNARNX_NATIVE_UI
+    if (res != CURLE_OK && res != CURLE_ABORTED_BY_CALLBACK) {
+        // Record only the endpoint host and numeric transport diagnostics.
+        // Request bodies, headers and URL queries may contain account secrets.
+        CURLU* parsed = curl_url();
+        char* host = nullptr;
+        if (parsed && curl_url_set(parsed, CURLUPART_URL, url.c_str(), 0) == CURLUE_OK)
+            curl_url_get(parsed, CURLUPART_HOST, &host, 0);
+        lunar::persistentEventLog("http-error",
+            "%s host=%s curl=%d status=%ld errno=%ld ssl_verify=%ld",
+            method, host ? host : "unknown", static_cast<int>(res),
+            status, os_errno, ssl_verify);
+        curl_free(host);
+        if (parsed) curl_url_cleanup(parsed);
+    }
+#endif
     lunar::diagnosticLog(
         "http",
         "%s %s result=%d status=%ld errno=%ld ssl_verify=%ld ip=%s port=%ld "
@@ -209,6 +226,12 @@ static void apply_common_options(CURL* curl, const std::string& url, struct curl
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "LunarNX");
 #if defined(__SWITCH__)
     curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 16384L);
+#endif
+#ifdef LUNARNX_NATIVE_UI
+    // The Android CA bundle lives in private application storage. Set it on
+    // the easy handle rather than relying on OpenSSL's compiled default paths.
+    if (const char* ca_file = std::getenv("SSL_CERT_FILE"); ca_file && *ca_file)
+        curl_easy_setopt(curl, CURLOPT_CAINFO, ca_file);
 #endif
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, LUNARNX_CURL_VERIFY_SSL ? 1L : 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, LUNARNX_CURL_VERIFY_SSL ? 2L : 0L);

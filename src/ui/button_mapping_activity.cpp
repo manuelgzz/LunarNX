@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "button_mapping_activity.h"
 
 #include "ui_style.h"
@@ -8,6 +8,9 @@
 #include <functional>
 #include <string>
 
+#ifndef __SWITCH__
+using namespace lunar::platform::mapping_bits;
+#endif
 namespace lunar::ui {
 namespace {
 
@@ -65,8 +68,10 @@ private:
 ButtonMappingActivity::ButtonMappingActivity(input::ButtonMappingProfile profile)
     : mapping_(input::loadButtonMapping(profile)), profile_(profile) {
     input::acquireCaptureButtonInput();
+#ifdef __SWITCH__
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
     padInitializeDefault(&capture_pad_);
+#endif
 }
 
 ButtonMappingActivity::~ButtonMappingActivity() {
@@ -194,8 +199,12 @@ void ButtonMappingActivity::enterCapture(size_t index) {
 
 void ButtonMappingActivity::pollCaptureInput() {
     if (!capturing_) return;
+#ifdef __SWITCH__
     padUpdate(&capture_pad_);
     uint64_t buttons = padGetButtons(&capture_pad_) & kSupportedButtons;
+#else
+    uint64_t buttons = platform::nativeButtons() & kSupportedButtons;
+#endif
     if (input::isCaptureButtonPressed()) {
         buttons |= input::kButtonMappingCapture;
     }

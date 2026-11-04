@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_stream_controller.h"
 #include "ps_media_bridge.h"
@@ -64,7 +64,11 @@ PsStreamController::PsStreamController(const PsConnectionPlan& plan,
     , bitrate_kbps_(bitrate_kbps)
     , video_codec_(plan.isPs5()
           ? video_codec : stream::VideoCodec::H264)
+#ifdef LUNARNX_NATIVE_UI
+    , video_backend_(stream::VideoBackend::Software) {}
+#else
     , video_backend_(stream::VideoBackend::HardwareZeroCopy) {}
+#endif
 
 PsStreamController::~PsStreamController() {
     requestCancel();
@@ -439,6 +443,7 @@ bool PsStreamController::startStream() {
     media_opts.video_codec = video_codec_;
     media_opts.hold_non_target_startup_frames = true;
     media_opts.video_backend = video_backend_;
+    media_opts.native_decode_mode = native_decode_mode_;
 #if LUNARNX_PS_DIRECT_VIDEO
     media_opts.video_scheduling =
         stream::VideoSchedulingMode::DirectLowLatency;

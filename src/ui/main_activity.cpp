@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "main_activity.h"
 #include "stream_loading_activity.h"
 #include "stream_settings_activity.h"
@@ -366,7 +366,7 @@ void MainActivity::installStateCallback() {
 void MainActivity::openStreamSettings() {
     signout_pending_ = false;
 
-    StreamSettingsSnapshot snapshot;
+    StreamSettingsSnapshot snapshot = loadStreamSettings();
     snapshot.width = stream_width_;
     snapshot.height = stream_height_;
     snapshot.bitrate_kbps = stream_bitrate_kbps_;
@@ -397,10 +397,16 @@ void MainActivity::openStreamSettings() {
                 vibration_enabled_ = updated.vibration_enabled;
                 rumble_strength_percent_ = updated.rumble_strength_percent;
                 if (status_) {
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+                    const auto decoder = brls::getStr(
+                        updated.native_decode_mode == stream::NativeDecodeMode::Software
+                            ? "lunarnx/settings/decoder_software"
+                            : "lunarnx/settings/decoder_auto");
+#else
+                    const std::string decoder = stream::videoBackendOverlayName(video_backend_);
+#endif
                     status_->setText(brls::getStr(
-                        "lunarnx/main/settings_ready",
-                        stream_height_,
-                        stream::videoBackendOverlayName(video_backend_)));
+                        "lunarnx/main/settings_ready", stream_height_, decoder));
                 }
                 if (game_language_changed &&
                     stream_source_ == StreamSource::Cloud) {
@@ -570,6 +576,7 @@ void MainActivity::startConsoleStream(const std::string& server_id,
     request.height = stream_height_;
     request.bitrate_kbps = stream_bitrate_kbps_;
     request.options.video_backend = video_backend_;
+    request.options.native_decode_mode = loadStreamSettings().native_decode_mode;
     request.options.post_process_mode = post_process_mode_;
     request.options.dithering_enabled = dithering_enabled_;
 
@@ -1232,6 +1239,7 @@ void MainActivity::startCloudTitleStream(const std::string& title_id,
     request.height = stream_height_;
     request.bitrate_kbps = stream_bitrate_kbps_;
     request.options.video_backend = video_backend_;
+    request.options.native_decode_mode = loadStreamSettings().native_decode_mode;
     request.options.post_process_mode = post_process_mode_;
     request.options.dithering_enabled = dithering_enabled_;
 

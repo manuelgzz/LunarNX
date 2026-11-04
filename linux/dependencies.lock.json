@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "dependencies": [
+    {
+      "repository": "sepfy/libpeer",
+      "revision": "9319aa434cb9e893faed0293ba9d2a21eca59c8b",
+      "directory": "."
+    },
+    {
+      "repository": "Mbed-TLS/mbedtls",
+      "revision": "1873d3bfc2da771672bd8e7e8f41f57e0af77f33",
+      "directory": "third_party/mbedtls"
+    },
+    {
+      "repository": "cisco/libsrtp",
+      "revision": "90d05bf8980d16e4ac3f16c19b77e296c4bc207b",
+      "directory": "third_party/libsrtp"
+    },
+    {
+      "repository": "sctplab/usrsctp",
+      "revision": "01cc4e042e2235b29d9d489d89728a6f9ac063ed",
+      "directory": "third_party/usrsctp"
+    },
+    {
+      "repository": "FreeRTOS/coreHTTP",
+      "revision": "b539e7ab2360efde3c6361f4c2bfcc065b22d087",
+      "directory": "third_party/coreHTTP"
+    }
+  ]
+}

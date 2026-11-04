@@ -6,6 +6,8 @@
 
 #ifdef __SWITCH__
 #include <switch.h>
+#elif defined(LUNARNX_NATIVE_UI)
+#include "../platform/native_gamepad.h"
 #endif
 
 namespace lunar::input {
@@ -136,6 +138,8 @@ void RumbleController::setEnabled(bool enabled) {
         }
 #ifdef __SWITCH__
         sendAllZeroLocked();
+#elif defined(LUNARNX_NATIVE_UI)
+        platform::nativeRumble(0, 0, 0, 0, 0);
 #endif
     }
 }
@@ -172,6 +176,13 @@ void RumbleController::update() {
         if (desired_on != state.output_on || (desired_on && state.dirty)) {
 #ifdef __SWITCH__
             sendStateLocked(i, desired_on);
+#elif defined(LUNARNX_NATIVE_UI)
+            if (i == 0) platform::nativeRumble(
+                desired_on ? state.left_motor * strength_scale_ : 0,
+                desired_on ? state.right_motor * strength_scale_ : 0,
+                desired_on ? state.lt_motor * strength_scale_ : 0,
+                desired_on ? state.rt_motor * strength_scale_ : 0,
+                desired_on ? (state.duration_ms ? state.duration_ms : 30) : 0);
 #endif
             state.output_on = desired_on;
         }
@@ -187,6 +198,8 @@ void RumbleController::stop() {
 
 #ifdef __SWITCH__
     sendAllZeroLocked();
+#elif defined(LUNARNX_NATIVE_UI)
+    platform::nativeRumble(0, 0, 0, 0, 0);
 #endif
 }
 

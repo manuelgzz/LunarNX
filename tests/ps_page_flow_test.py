@@ -54,7 +54,11 @@ def main():
             'stylePrimaryButton(action)' in ui,
             "available PS hosts must expose focused action buttons without changing flow")
     require('refreshConsoles();' not in ui.split('if (!resumed_once_)', 1)[1].split('} else {', 1)[0],
-            "opening the page must not auto-trigger network discovery")
+            "resuming the page must not re-trigger network discovery")
+    create_view = ui.split("brls::View* PsActivity::createContentView()", 1)[1].split(
+        "void PsActivity::onPause()", 1)[0]
+    require("startLanDiscovery();" in create_view and "alive->load()" in create_view,
+            "opening the PS page must start LAN search in the background")
     require("chiaki_discovery_service_init" in discovery,
             "LAN search must actively send discovery packets")
     wakeup = manager.split("void PsManager::wakeupHost", 1)[1].split(

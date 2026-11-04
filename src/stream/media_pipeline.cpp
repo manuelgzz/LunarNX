@@ -151,6 +151,7 @@ bool MediaPipeline::initialize(int width, int height, PerfStats* perf,
         }
 
         video_decoder_->setVideoBackend(options.video_backend);
+        video_decoder_->setNativeDecodeMode(options.native_decode_mode);
         video_decoder_->setVideoCodec(options.video_codec);
         video_decoder_->setPerfStats(perf);
         lunar::diagnosticLog("media", "video decoder init begin");

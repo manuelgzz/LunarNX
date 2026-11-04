@@ -1,6 +1,7 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_settings_activity.h"
 #include "button_mapping_activity.h"
+#include "touch_gamepad_settings.h"
 #include "ui_style.h"
 #include "../common.h"
 #include <cJSON.h>
@@ -50,6 +51,14 @@ bool writeConfig(cJSON* root) {
 PsSettingsSnapshot loadPsSettings() {
     PsSettingsSnapshot out;
     cJSON* root = readConfig();
+    const cJSON* touch_enabled = cJSON_GetObjectItem(root, "ps_touch_gamepad_enabled");
+    if (cJSON_IsBool(touch_enabled)) out.touch_gamepad_enabled = cJSON_IsTrue(touch_enabled);
+    const cJSON* touch_opacity = cJSON_GetObjectItem(root, "ps_touch_gamepad_opacity");
+    if (cJSON_IsNumber(touch_opacity))
+        out.touch_gamepad_opacity = std::clamp(touch_opacity->valueint, 10, 100);
+    const cJSON* native_mode = cJSON_GetObjectItem(root, "ps_native_decode_mode");
+    out.native_decode_mode = stream::parseNativeDecodeMode(
+        cJSON_IsString(native_mode) ? native_mode->valuestring : nullptr);
     const cJSON* resolution = cJSON_GetObjectItem(root, "ps_resolution");
     if (cJSON_IsNumber(resolution) && resolution->valueint >= 1080) { out.width = 1920; out.height = 1080; }
     const cJSON* bitrate = cJSON_GetObjectItem(root, "ps_bitrate_kbps");
@@ -71,6 +80,14 @@ PsSettingsSnapshot loadPsSettings() {
 
 bool savePsSettings(const PsSettingsSnapshot& settings) {
     cJSON* root = readConfig();
+    cJSON_DeleteItemFromObject(root, "ps_touch_gamepad_enabled");
+    cJSON_AddBoolToObject(root, "ps_touch_gamepad_enabled", settings.touch_gamepad_enabled);
+    cJSON_DeleteItemFromObject(root, "ps_touch_gamepad_opacity");
+    cJSON_AddNumberToObject(root, "ps_touch_gamepad_opacity",
+                            std::clamp(settings.touch_gamepad_opacity, 10, 100));
+    cJSON_DeleteItemFromObject(root, "ps_native_decode_mode");
+    cJSON_AddStringToObject(root, "ps_native_decode_mode",
+                            stream::nativeDecodeModeName(settings.native_decode_mode));
     cJSON_DeleteItemFromObject(root, "ps_resolution");
     cJSON_AddNumberToObject(root, "ps_resolution", settings.height);
     cJSON_DeleteItemFromObject(root, "ps_bitrate_kbps");
@@ -118,11 +135,26 @@ brls::View* PsSettingsActivity::createContentView() {
                 ? stream::VideoCodec::HEVC : stream::VideoCodec::H264;
         });
     card->addView(codec);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    auto* decoder = new brls::SelectorCell();
+    decoder->init(brls::getStr("lunarnx/settings/decoder"),
+        {brls::getStr("lunarnx/settings/decoder_auto"),
+         brls::getStr("lunarnx/settings/decoder_software")},
+        settings_.native_decode_mode == stream::NativeDecodeMode::Software ? 1 : 0,
+        [this](int selected) {
+            settings_.native_decode_mode = selected == 1
+                ? stream::NativeDecodeMode::Software : stream::NativeDecodeMode::Automatic;
+        });
+    card->addView(decoder);
+#endif
     root->addView(card);
     root->addView(makeSectionHeader(
         brls::getStr("lunarnx/ps/settings_controller_section"),
         brls::getStr("lunarnx/ps/settings_controller_detail")));
     auto* controller_card = makeUiCard(); controller_card->setPadding(4, 8, 4, 8);
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    addTouchGamepadSettings(controller_card, settings_);
+#endif
     auto* vibration = new brls::BooleanCell();
     vibration->init(brls::getStr("lunarnx/settings/vibration"),
         settings_.vibration_enabled,

@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_pairing_account.h"
 #include "ps_pairing_account_store.h"

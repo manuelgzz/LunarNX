@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "platform_activity.h"
 #include "auth_activity.h"
 #include "main_activity.h"
@@ -237,6 +237,7 @@ void PlatformActivity::openPlayStation() {
         ps_activity,
         brls::TransitionAnimation::NONE);
     diagnosticLog("ui-platform", "PlayStation navigation complete");
+
 }
 
 } // namespace lunar::ui

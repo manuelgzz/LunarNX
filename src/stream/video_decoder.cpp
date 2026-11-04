@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <chrono>
+#include <climits>
 #include <string>
 
 #ifndef LUNARNX_PS_SKIP_LOOP_FILTER
@@ -19,6 +20,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/mem.h>
+#include <libavutil/opt.h>
 }
 
 namespace lunar::stream {
@@ -134,6 +136,13 @@ bool VideoDecoder::initialize(int width, int height) {
     g_video_decode_logs = 0;
     g_video_transfer_logs = 0;
     error_log_count_ = 0;
+#ifdef LUNARNX_NATIVE_UI
+    native_attempted_ = false;
+    native_active_ = false;
+    native_decoder_kind_ = 0;
+    native_frames_without_output_ = 0;
+    if (perf_) perf_->native_video_decoder.store(0);
+#endif
     const AVCodecID codec_id = video_codec_ == VideoCodec::HEVC
         ? AV_CODEC_ID_HEVC : AV_CODEC_ID_H264;
     const char* codec_name = videoCodecName(video_codec_);
@@ -287,6 +296,178 @@ bool VideoDecoder::initialize(int width, int height) {
     return true;
 }
 
+
+#ifdef LUNARNX_NATIVE_UI
+namespace {
+#ifndef __ANDROID__
+AVPixelFormat nativeVaapiFormat(AVCodecContext*, const AVPixelFormat* formats) {
+    for (const auto* f = formats; *f != AV_PIX_FMT_NONE; ++f)
+        if (*f == AV_PIX_FMT_VAAPI) return *f;
+    return AV_PIX_FMT_NONE;
+}
+#endif
+}
+
+void VideoDecoder::tryNativeAcceleration(const uint8_t* data, size_t len) {
+    native_attempted_ = true;
+    const char* preference = std::getenv("LUNARNX_VIDEO_DECODE");
+    if (nativeSoftwareRequested(native_decode_mode_, preference)) {
+        lunar::persistentEventLog("video-decode", "selected=software reason=%s",
+            native_decode_mode_ == NativeDecodeMode::Software ? "settings" : "override");
+        return;
+    }
+    auto* previous = static_cast<AVCodecContext*>(codec_ctx_);
+    const AVCodecID id = video_codec_ == VideoCodec::HEVC
+        ? AV_CODEC_ID_HEVC : AV_CODEC_ID_H264;
+#ifdef __ANDROID__
+    const AVCodec* codec = avcodec_find_decoder_by_name(
+        id == AV_CODEC_ID_HEVC ? "hevc_mediacodec" : "h264_mediacodec");
+    constexpr int kind = 2;
+#else
+    const AVCodec* codec = avcodec_find_decoder(id);
+    constexpr int kind = 1;
+    bool supported = false;
+    if (codec) {
+        for (int i = 0; const auto* config = avcodec_get_hw_config(codec, i); ++i)
+            if (config->device_type == AV_HWDEVICE_TYPE_VAAPI &&
+                (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX))
+                supported = true;
+    }
+    if (!supported) {
+        lunar::persistentEventLog("video-decode",
+            "selected=software reason=vaapi-unavailable codec=%s decoder=%s",
+            videoCodecName(video_codec_), codec ? codec->name : "none");
+        return;
+    }
+#endif
+    if (!codec || !previous || len > 1024 * 1024) {
+        lunar::persistentEventLog("video-decode",
+            "selected=software reason=decoder-unavailable codec=%s decoder=%s previous=%d bytes=%zu",
+            videoCodecName(video_codec_), codec ? codec->name : "none",
+            previous ? 1 : 0, len);
+        return;
+    }
+    lunar::persistentEventLog("video-decode", "accelerator-attempt codec=%s bytes=%zu",
+                              videoCodecName(video_codec_), len);
+    AVCodecContext* next = avcodec_alloc_context3(codec);
+    if (!next) return;
+    next->width = previous->width;
+    next->height = previous->height;
+    next->thread_count = 1;
+    next->flags |= AV_CODEC_FLAG_LOW_DELAY;
+    next->pkt_timebase = AVRational{1, 1000000000};
+    // The initial random-access AU includes cached SPS/PPS/VPS. Supply these
+    // before opening MediaCodec so the profile, dimensions and CSD are known.
+    next->extradata = static_cast<uint8_t*>(av_mallocz(len + AV_INPUT_BUFFER_PADDING_SIZE));
+    if (!next->extradata) { avcodec_free_context(&next); return; }
+    std::memcpy(next->extradata, data, len);
+    next->extradata_size = static_cast<int>(len);
+    int result = 0;
+#ifdef __ANDROID__
+    result = av_opt_set_int(next->priv_data, "ndk_codec", 1, 0);
+#else
+    const char* device = std::getenv("LUNARNX_VAAPI_DEVICE");
+    if (device && !*device) device = nullptr;
+    result = av_hwdevice_ctx_create(&hw_device_ctx_, AV_HWDEVICE_TYPE_VAAPI,
+                                    device, nullptr, 0);
+    if (result >= 0) {
+        next->hw_device_ctx = av_buffer_ref(hw_device_ctx_);
+        if (!next->hw_device_ctx) result = AVERROR(ENOMEM);
+        next->get_format = nativeVaapiFormat;
+    }
+#endif
+    if (result >= 0) result = avcodec_open2(next, codec, nullptr);
+    if (result < 0) {
+        char error_text[AV_ERROR_MAX_STRING_SIZE]{};
+        av_strerror(result, error_text, sizeof(error_text));
+        lunar::persistentEventLog("video-decode",
+            "selected=software reason=accelerator-open-failed kind=%d codec=%s error=%d (%s)",
+            kind, videoCodecName(video_codec_), result, error_text);
+        avcodec_free_context(&next);
+        av_buffer_unref(&hw_device_ctx_);
+        return;
+    }
+    avcodec_free_context(&previous);
+    codec_ctx_ = next;
+    submitted_timestamps_.clear();
+    native_active_ = true;
+    native_decoder_kind_ = kind;
+    native_frames_without_output_ = 0;
+    lunar::persistentEventLog("video-decode",
+        "accelerator-opened kind=%s codec=%s output=cpu-copy",
+        kind == 1 ? "vaapi" : "mediacodec", videoCodecName(video_codec_));
+}
+
+void VideoDecoder::fallBackToSoftware() {
+    auto* ctx = static_cast<AVCodecContext*>(codec_ctx_);
+    const int width = ctx ? ctx->width : 1280;
+    const int height = ctx ? ctx->height : 720;
+    lunar::persistentEventLog("video-decode",
+        "selected=software reason=accelerator-runtime-failure kind=%d",
+        native_decoder_kind_);
+    shutdown();
+    // Retain path-specific parameter sets. Transport recovery requests an IDR
+    // before feeding the replacement decoder through its normal startup gate.
+    VideoDecoder::initialize(width, height);
+    native_attempted_ = true;
+}
+
+bool VideoDecoder::decodeNativeAccessUnit(const uint8_t* data, size_t len,
+                                          uint64_t timestamp,
+                                          int log_index, bool log) {
+    auto* ctx = static_cast<AVCodecContext*>(codec_ctx_);
+    AVPacket* packet = av_packet_alloc();
+    if (!packet) return false;
+    if (len > static_cast<size_t>(INT_MAX) ||
+        av_new_packet(packet, static_cast<int>(len)) < 0) {
+        av_packet_free(&packet);
+        return false;
+    }
+    std::memcpy(packet->data, data, len);
+    packet->pts = packet->dts = static_cast<int64_t>(timestamp);
+    bool produced = false;
+    auto drain = [&]() {
+        for (;;) {
+            AVFrame* frame = av_frame_alloc();
+            if (!frame) return AVERROR(ENOMEM);
+            const int ret = avcodec_receive_frame(ctx, frame);
+            if (ret < 0) {
+                av_frame_free(&frame);
+                return ret == AVERROR(EAGAIN) || ret == AVERROR_EOF ? 0 : ret;
+            }
+            produced = true;
+            uint64_t pts = timestamp;
+            if (!submitted_timestamps_.empty()) {
+                pts = submitted_timestamps_.front();
+                submitted_timestamps_.pop_front();
+            }
+            if (!deliverFrame(frame, pts, log_index, log)) return AVERROR_EXTERNAL;
+            if (perf_) perf_->native_video_decoder.store(native_decoder_kind_);
+        }
+    };
+    int ret = avcodec_send_packet(ctx, packet);
+    if (ret == AVERROR(EAGAIN)) {
+        ret = drain();
+        if (ret >= 0) ret = avcodec_send_packet(ctx, packet);
+    }
+    av_packet_free(&packet);
+    if (ret >= 0) {
+        submitted_timestamps_.push_back(timestamp);
+        ret = drain();
+    }
+    native_frames_without_output_ = produced ? 0 : native_frames_without_output_ + 1;
+    if (ret < 0 || native_frames_without_output_ >= 120) {
+        if (perf_) perf_->recordVideoDecodeError();
+        lunar::persistentEventLog("video-decode",
+            "accelerator-decode-failed error=%d without_output=%u",
+            ret, native_frames_without_output_);
+        fallBackToSoftware();
+        return false;
+    }
+    return true;
+}
+#endif
+
 bool VideoDecoder::deliverFrame(AVFrame* frame,
                                 uint64_t timestamp,
                                 int log_index,
@@ -312,6 +493,20 @@ bool VideoDecoder::deliverFrame(AVFrame* frame,
         return false;
     }
 
+#ifdef LUNARNX_NATIVE_UI
+    if (frame->format == AV_PIX_FMT_VAAPI) {
+        AVFrame* transferred = av_frame_alloc();
+        int ret = transferred ? av_hwframe_transfer_data(transferred, frame, 0) : AVERROR(ENOMEM);
+        if (ret >= 0) ret = av_frame_copy_props(transferred, frame);
+        av_frame_free(&frame);
+        if (ret < 0) {
+            av_frame_free(&transferred);
+            if (perf_) perf_->recordVideoDecodeError();
+            return false;
+        }
+        frame = transferred;
+    }
+#endif
     AVFrame* callback_frame = frame;
     const uint64_t probe_frame_index = static_cast<uint64_t>(log_index) + 1;
 
@@ -419,6 +614,10 @@ bool VideoDecoder::decodeAccessUnit(const uint8_t* data, size_t len,
                                     uint64_t timestamp,
                                     const VideoAccessUnitInfo& au,
                                     int log_index, bool log) {
+#ifdef LUNARNX_NATIVE_UI
+    if (!native_attempted_ && au.has_random_access) tryNativeAcceleration(data, len);
+    if (native_active_) return decodeNativeAccessUnit(data, len, timestamp, log_index, log);
+#endif
     auto* ctx = static_cast<AVCodecContext*>(codec_ctx_);
     const char* codec_name = videoCodecName(video_codec_);
     // Path-specific decoder policy is implemented by XboxVideoDecoder and
@@ -885,15 +1084,14 @@ void VideoDecoder::shutdown() {
         av_parser_close(static_cast<AVCodecParserContext*>(parser_));
         parser_ = nullptr;
     }
-#ifdef __SWITCH__
-    if (hw_device_ctx_) {
-        av_buffer_unref(&hw_device_ctx_);
-        hw_device_ctx_ = nullptr;
-    }
-#endif
     if (codec_ctx_) {
         avcodec_free_context(reinterpret_cast<AVCodecContext**>(&codec_ctx_));
     }
+    av_buffer_unref(&hw_device_ctx_);
+    submitted_timestamps_.clear();
+#ifdef LUNARNX_NATIVE_UI
+    native_active_ = false;
+#endif
     initialized_ = false;
     error_log_count_ = 0;
 }

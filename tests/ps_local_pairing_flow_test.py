@@ -18,8 +18,9 @@ def main() -> None:
 
     assert "nifmGetCurrentIpConfigInfo" in discovery
     assert "current_ip | ~subnet_mask" in discovery
-    assert "options.broadcast_addrs = &directed_broadcast" in discovery
-    assert "options.broadcast_num = 1" in discovery
+    assert "options.broadcast_addrs = directed_broadcasts.data()" in discovery
+    assert "options.broadcast_num = directed_broadcasts.size()" in discovery
+    assert "platform::nativeIPv4Addresses()" in discovery
     assert "manual_hosts" in discovery
     assert "chiaki_discovery_send(&service_.discovery" in discovery
     assert "CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4" in discovery

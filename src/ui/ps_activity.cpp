@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_activity.h"
 #include "ps_registration_activity.h"
 #include "psn_login_activity.h"
@@ -13,6 +13,8 @@
 #include "../ps/ps_stream_controller.h"
 #include "../ps/psn_auth_manager.h"
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <exception>
 #include <thread>
@@ -693,6 +695,33 @@ brls::View* PsActivity::createContentView() {
     appendMockReplayConsole(hosts_);
     updateSourceUi();
     rebuildConsoleList(hosts_);
+    // Same action as "Search LAN", started once when the page opens so an
+    // already powered-on console shows up without an extra click.
+    // The first search is deferred briefly and repeated once when nothing is
+    // found: right after navigation the Android/Switch Wi-Fi stack may drop
+    // the first broadcasts.
+    auto alive = alive_;
+    const bool auto_started = lunar::platform::startNetworkWorker("ps-auto-lan",
+        [this, alive]() {
+            for (int attempt = 0; attempt < 2; ++attempt) {
+                std::this_thread::sleep_for(attempt == 0
+                    ? std::chrono::milliseconds(400)
+                    : std::chrono::milliseconds(4000));
+                if (!alive->load()) return;
+                auto found = std::make_shared<std::atomic<bool>>(false);
+                brls::sync([this, alive, attempt, found]() {
+                    if (alive->load() && !console_list_refresh_suspended_ &&
+                        (attempt == 0 || !hasLocalHost())) {
+                        diagnosticLog("ui-ps", "Auto Search LAN attempt=%d", attempt);
+                        startLanDiscovery();
+                    }
+                    found->store(true);
+                });
+                while (!found->load() && alive->load())
+                    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+        });
+    if (!auto_started) diagnosticLog("ui-ps", "Auto Search LAN worker failed to start");
     return makeAppFrame("PlayStation", workspace);
 }
 
@@ -1224,6 +1253,7 @@ void PsActivity::connectToConsole(const ps::PsConsole& host) {
         plan, ps_manager_->getPsnAccessToken(), ps_manager_->getPsnAccountId(),
         settings.width, settings.height, 60, settings.bitrate_kbps,
         settings.video_codec);
+    controller->setNativeDecodeMode(settings.native_decode_mode);
     controller->setRumbleEnabled(settings.vibration_enabled);
     controller->setRumbleStrengthPercent(settings.rumble_strength_percent);
     diagnosticLog("ui-ps", "pushing PsConnectActivity");

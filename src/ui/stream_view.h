@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include <borealis.hpp>
 #include "../app/stream_runtime.h"
 #include "../common/operation_generation.h"
@@ -28,6 +28,13 @@ private:
         std::make_shared<common::OperationGeneration>();
     class StreamOverlay* overlay_ = nullptr;
     class PerfOverlay* perf_overlay_ = nullptr;
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    class TouchGamepadView* touch_gamepad_view_ = nullptr;
+    bool touch_gamepad_enabled_ = false;
+    void applyNativeTouchSettings();
+    brls::Label* decoder_label_ = nullptr;
+    bool show_decoder_overlay_ = false;
+#endif
     brls::Box* content_root_ = nullptr;
     brls::Box* quick_menu_ = nullptr;
     brls::Button* performance_button_ = nullptr;

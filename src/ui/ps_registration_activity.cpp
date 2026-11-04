@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "ps_registration_activity.h"
 #include "i18n.h"
 #include "qr_code.h"

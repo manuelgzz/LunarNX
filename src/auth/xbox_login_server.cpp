@@ -1,9 +1,16 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "xbox_login_server.h"
 #include "../diagnostics.h"
 
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <sys/random.h>
+#include <stdexcept>
+#endif
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstdio>
@@ -74,7 +81,17 @@ std::string htmlEscape(const std::string& value) {
 
 std::string sessionToken() {
     unsigned char bytes[16]{};
+#ifdef __SWITCH__
     randomGet(bytes, sizeof(bytes));
+#else
+    size_t filled = 0;
+    while (filled < sizeof(bytes)) {
+        const ssize_t count = getrandom(bytes + filled, sizeof(bytes) - filled, 0);
+        if (count < 0 && errno == EINTR) continue;
+        if (count <= 0) throw std::runtime_error("Cannot generate a login session token");
+        filled += static_cast<size_t>(count);
+    }
+#endif
     char token[sizeof(bytes) * 2 + 1]{};
     for (size_t i = 0; i < sizeof(bytes); ++i) {
         std::snprintf(token + i * 2, 3, "%02x", bytes[i]);
@@ -151,7 +168,8 @@ bool XboxLoginServer::start(const std::string& verification_url,
         return false;
     }
 
-    u32 current_address = 0;
+    uint32_t current_address = 0;
+#ifdef __SWITCH__
     Result rc = nifmGetCurrentIpAddress(&current_address);
     if (R_FAILED(rc) || current_address == 0) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -159,6 +177,24 @@ bool XboxLoginServer::start(const std::string& verification_url,
         return false;
     }
 
+#else
+    ifaddrs* interfaces = nullptr;
+    if (getifaddrs(&interfaces) == 0) {
+        for (auto* item = interfaces; item; item = item->ifa_next) {
+            if (item->ifa_addr && item->ifa_addr->sa_family == AF_INET &&
+                (item->ifa_flags & IFF_UP) && !(item->ifa_flags & IFF_LOOPBACK)) {
+                current_address = reinterpret_cast<sockaddr_in*>(item->ifa_addr)->sin_addr.s_addr;
+                break;
+            }
+        }
+        freeifaddrs(interfaces);
+    }
+    if (!current_address) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        error_ = "No local IPv4 network address is available";
+        return false;
+    }
+#endif
     const int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd < 0) {
         std::lock_guard<std::mutex> lock(mutex_);

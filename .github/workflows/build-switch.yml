@@ -3,7 +3,7 @@ name: Build Nintendo Switch application
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -122,6 +122,8 @@ jobs:
       - name: Build LunarNX
         env:
           CURL_PROVIDER: moonlight
+          DROP_DIAG: "1"
+          LATENCY_DIAG: "1"
         run: ./scripts/build_switch_in_container.sh
 
       - name: Run build regressions

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LunarNX
+Comment=Xbox and PlayStation streaming
+Exec=LunarNX_Linux
+Icon=lunarnx
+Terminal=false
+Categories=Game;

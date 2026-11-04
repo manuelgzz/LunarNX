@@ -1,11 +1,13 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "psn_auth_manager.h"
 #include "psn_auth_utils.h"
 #include "../api/http_client.h"
 #include "../diagnostics.h"
 
+#ifdef __SWITCH__
 #include <switch.h>
+#endif
 #include <cJSON.h>
 #include <chrono>
 #include <cerrno>
@@ -156,6 +158,7 @@ bool PsnAuthManager::openWebApplet(std::string& authorization_code) {
     std::string login_url = getLoginUrl();
     if (login_url.empty()) return fail("Call startAuth() first");
 
+#ifdef __SWITCH__
     AppletType applet_type = appletGetAppletType();
     if (applet_type != AppletType_Application &&
         applet_type != AppletType_SystemApplication) {
@@ -211,6 +214,9 @@ bool PsnAuthManager::openWebApplet(std::string& authorization_code) {
 
     diagnosticLog("psn-auth", "Switch browser captured Sony callback code");
     return true;
+#else
+    return fail("Use the phone sign-in helper or paste the Sony redirect URL");
+#endif
 }
 
 bool PsnAuthManager::submitRedirectUrl(const std::string& input, StateCallback cb,

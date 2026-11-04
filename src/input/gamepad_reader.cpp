@@ -8,12 +8,15 @@
 #include <switch.h>
 #else
 #include <SDL2/SDL.h>
+#ifdef LUNARNX_NATIVE_UI
+#include "../platform/native_gamepad.h"
+#endif
 #endif
 
 namespace lunar::input {
 
 GamepadReader::GamepadReader(ButtonMappingProfile profile) {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     mapping_profile_ = profile;
     button_mapping_ = defaultButtonMapping(profile);
 #else
@@ -51,13 +54,14 @@ bool GamepadReader::initialize() {
     pad_state_ = pad;
     lunar::diagnosticLog("gamepad", "pad initialize done");
 #endif
+    reloadButtonMapping();
     initialized_ = true;
     lunar::diagnosticLog("gamepad", "initialize done");
     return true;
 }
 
 void GamepadReader::reloadButtonMapping() {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
     button_mapping_ = loadButtonMapping(mapping_profile_);
 #endif
 }
@@ -137,6 +141,9 @@ GamepadState GamepadReader::read() {
     state.right_trigger = state.rt ? 65535 : 0;
 
 #else
+#ifdef LUNARNX_NATIVE_UI
+    state = platform::nativeGamepad(button_mapping_);
+#else
     // Desktop: optional SDL2 keyboard (for testing). Never throw if SDL is not ready.
     if (SDL_WasInit(SDL_INIT_EVENTS) == 0 && SDL_WasInit(SDL_INIT_VIDEO) == 0) {
         return state;
@@ -176,6 +183,7 @@ GamepadState GamepadReader::read() {
 
     state.left_trigger  = keys[SDL_SCANCODE_Q] ? 65535 : 0;
     state.right_trigger = keys[SDL_SCANCODE_E] ? 65535 : 0;
+#endif
 #endif
     return state;
 }

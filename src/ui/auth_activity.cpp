@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "auth_activity.h"
 #include "../api/http_client.h"
 #include "../common.h"
@@ -401,6 +401,9 @@ std::shared_ptr<app::StreamController> AuthActivity::createConfiguredController(
                 cJSON_Delete(root);
             }
     }
+#if defined(LUNARNX_NATIVE_UI) && !defined(__SWITCH__)
+    ctrl->setDefaultVideoBackend(stream::VideoBackend::Software);
+#endif
     return ctrl;
 }
 

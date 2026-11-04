@@ -85,3 +85,14 @@ lib/switch/libchiaki.a
 lib/switch/libgf_complete.a
 lib/switch/libjerasure.a
 lib/switch/libprotobuf-nanopb.a
+
+# Generated native PlayStation SDK
+lib/chiaki-native/
+
+# Generated Android dependencies and Gradle output
+lib/android-sources/
+android/.gradle/
+android/app/generated/
+android/app/.cxx/
+android/app/build/
+android/local.properties

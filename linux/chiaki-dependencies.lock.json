@@ -1,0 +1,29 @@
+{
+  "dependencies": [
+    {
+      "repository": "xlanor/chiaki-ng",
+      "revision": "1597a48514e5d9e67168ca40e6fa40c0171cd379",
+      "directory": "."
+    },
+    {
+      "repository": "curl/curl",
+      "revision": "b1ef0e1a01c0bb6ee5367bd9c186a603bde3615a",
+      "directory": "third-party/curl"
+    },
+    {
+      "repository": "streetpea/gf-complete",
+      "revision": "fa54a4670a5705c84abf6c24b92b0cd479625478",
+      "directory": "third-party/gf-complete"
+    },
+    {
+      "repository": "streetpea/jerasure",
+      "revision": "505ccb4bc69eee8d7ea40a6089a056b99671134f",
+      "directory": "third-party/jerasure"
+    },
+    {
+      "repository": "nanopb/nanopb",
+      "revision": "cad3c18ef15a663e30e3e43e3a752b66378adec1",
+      "directory": "third-party/nanopb"
+    }
+  ]
+}

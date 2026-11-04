@@ -1,4 +1,4 @@
-#if defined(__SWITCH__) || defined(LUNARNX_DESKTOP_TEST)
+#if defined(__SWITCH__) || defined(LUNARNX_DESKTOP_TEST) || defined(LUNARNX_NATIVE_UI)
 
 #include "ps_credentials.h"
 #include <algorithm>

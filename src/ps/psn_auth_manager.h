@@ -1,8 +1,9 @@
 #pragma once
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include "../common/operation_generation.h"
+#include <netinet/in.h>
 #include <chiaki/remote/holepunch.h>
 #include <atomic>
 #include <functional>

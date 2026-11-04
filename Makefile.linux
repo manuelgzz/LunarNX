@@ -1,0 +1,81 @@
+# Native Linux entry point. The existing desktop binary remains a test runner.
+# No dependencies are downloaded and no external client applications are launched.
+.DEFAULT_GOAL := all
+# These must precede the include: Make expands rule targets while parsing it.
+override BUILD := build/linux
+override TARGET := $(BUILD)/LunarNX_Desktop
+include Makefile.desktop
+
+# Override Apple-specific flags without changing the macOS/Switch build paths.
+SDK_PATH :=
+PKG_CONFIG ?= pkg-config
+LINUX_PACKAGES := sdl2 libavcodec libavutil libswresample opus libcurl openssl
+COMMON_INCLUDES = -Isrc -Ilib \
+    -Ilib/libpeer/third_party/mbedtls/include \
+    -Ilib/libpeer/third_party/libsrtp/include \
+    -Ilib/libpeer/third_party/libsrtp/crypto/include \
+    -idirafter lib/libpeer/include -idirafter lib/libpeer/include/sys \
+    -Ilib/libpeer/src -Ilib/libpeer/build/dist/include \
+    -Ilib/libpeer/build/dist/include/srtp2 \
+    -Ilib/libpeer/third_party/coreHTTP/source/interface \
+    $(shell $(PKG_CONFIG) --cflags $(LINUX_PACKAGES))
+
+# Do not filter Linux network interfaces using macOS's en0 name.
+COMMON_DEFINES := $(filter-out -DCONFIG_IFACE_PREFIX=% -DCONFIG_USE_USRSCTP=%,$(COMMON_DEFINES))
+NATIVE_DTLS_DEBUG ?= 0
+COMMON_DEFINES += -DCONFIG_MBEDTLS_DEBUG=$(NATIVE_DTLS_DEBUG) -DCONFIG_USE_USRSCTP=1 -DCONFIG_IFACE_PREFIX=\"\"
+CXXFLAGS = -std=gnu++17 -O2 -g -Wall -pthread $(COMMON_INCLUDES) $(COMMON_DEFINES)
+CFLAGS = -O2 -g -Wall -pthread $(COMMON_INCLUDES) $(COMMON_DEFINES)
+LDFLAGS = -pthread \
+    -Llib/libpeer/third_party/mbedtls/build_host/library \
+    -Llib/libpeer/third_party/libsrtp/build_host \
+    -Llib/libpeer/build/dist/lib \
+    $(shell $(PKG_CONFIG) --libs $(LINUX_PACKAGES)) \
+    -lusrsctp -lsrtp2 -lmbedtls -lmbedx509 -lmbedcrypto $(shell $(PKG_CONFIG) --libs openssl)
+.PHONY: linux-check-dependencies
+linux-check-dependencies:
+	@$(PKG_CONFIG) --exists $(LINUX_PACKAGES) || \
+	    { echo "Missing Linux development packages: $(LINUX_PACKAGES)" >&2; exit 1; }
+	@test -f lib/libpeer/src/peer_connection.c || \
+	    { echo "Prepare the pinned legacy libpeer dependency before the full build." >&2; exit 1; }
+
+all: linux-check-dependencies
+$(CXX_OBJS) $(C_OBJS): | linux-check-dependencies
+
+# Desktop-only diagnostic helpers also need native Linux libraries.
+http_client_cancel_tests:
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) -o $(BUILD)/http_client_cancel_test $(HTTP_CLIENT_CANCEL_TEST_OBJS) $(shell $(PKG_CONFIG) --libs libcurl)
+	./$(BUILD)/http_client_cancel_test
+
+auth_refresh_cancel_tests:
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) -o $(BUILD)/auth_refresh_cancel_test $(AUTH_REFRESH_CANCEL_TEST_OBJS) $(shell $(PKG_CONFIG) --libs libcurl openssl)
+	./$(BUILD)/auth_refresh_cancel_test
+
+audio_decoder_tests:
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) -o $(BUILD)/audio_decoder_plc_test $(AUDIO_DECODER_TEST_OBJS) $(shell $(PKG_CONFIG) --libs opus)
+	./$(BUILD)/audio_decoder_plc_test
+
+rho:
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) -o $(BUILD)/rho $(RHO_OBJS) $(shell $(PKG_CONFIG) --libs mpv)
+
+.PHONY: linux-toolchain-report
+linux-toolchain-report:
+	@printf '%s\n' 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)' 'TARGET=$(TARGET)'
+
+C_SRCS := $(filter-out lib/stubs/chiaki_holepunch_stubs.c,$(C_SRCS))
+
+LINUX_SMOKE_OBJS = $(filter-out $(BUILD)/src/platform/desktop_main.o,$(CXX_OBJS)) $(C_OBJS) $(BUILD)/tests/linux_native_smoke.o
+.PHONY: linux-native-smoke
+linux-native-smoke: $(BUILD)/linux_native_smoke
+$(BUILD)/linux_native_smoke: $(LINUX_SMOKE_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LINUX_SMOKE_OBJS) $(LDFLAGS) $(shell $(PKG_CONFIG) --libs libavformat)
+
+LINUX_MOCK_OBJS = $(filter-out $(BUILD)/src/platform/desktop_main.o,$(CXX_OBJS)) $(C_OBJS) $(BUILD)/tests/linux_mock_stream.o
+.PHONY: linux-mock-stream
+linux-mock-stream: $(BUILD)/linux_mock_stream
+$(BUILD)/linux_mock_stream: $(LINUX_MOCK_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LINUX_MOCK_OBJS) $(LDFLAGS)

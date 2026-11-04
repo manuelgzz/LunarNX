@@ -1,0 +1,206 @@
+name: Linux port foundation
+on:
+  push:
+    branches: [main, develop, "port/**"]
+    paths:
+      - "Makefile.linux"
+      - "linux/**"
+      - "scripts/*linux*"
+      - "romfs/**"
+      - "tools/mock_xbox/**"
+      - "tests/portable/**"
+      - "tests/*_test.cpp"
+      - "tests/linux_native_smoke.cpp"
+      - "src/**"
+      - ".github/workflows/linux-port.yml"
+  pull_request:
+    paths:
+      - "Makefile.linux"
+      - "tests/portable/**"
+      - "tests/*_test.cpp"
+      - "tests/linux_native_smoke.cpp"
+      - "src/**"
+      - ".github/workflows/linux-port.yml"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  portable-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD
+      - name: Configure shared policy tests
+        run: cmake -S tests/portable -B build/portable -DCMAKE_BUILD_TYPE=Release
+      - name: Compile shared policy tests
+        run: cmake --build build/portable --parallel 2
+      - name: Run shared policy tests
+        run: ctest --test-dir build/portable --output-on-failure
+      - name: Verify Linux toolchain flags
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev
+          make -f Makefile.linux linux-toolchain-report > /tmp/linux-build.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          commands = Path("/tmp/linux-build.txt").read_text()
+          forbidden = ("xcrun", "-isysroot", "/opt/homebrew", "-framework", 'CONFIG_IFACE_PREFIX=\\"en0')
+          for flag in forbidden:
+              assert flag not in commands, f"Apple-specific flag leaked into Linux: {flag}"
+          assert "build/linux/LunarNX_Desktop" in commands
+          PY
+  native-runner:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Install native development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make pkg-config libsdl2-dev libavcodec-dev libavutil-dev libswresample-dev libopus-dev libcurl4-openssl-dev libssl-dev libavformat-dev ffmpeg xvfb xauth libgl1-mesa-dri libgl1-mesa-dev libswscale-dev libjson-c-dev libminiupnpc-dev libevent-dev protobuf-compiler python3-protobuf
+      - name: Prepare pinned dependency archives
+        run: python3 scripts/prepare_linux_dependencies.py
+      - name: Build native transport dependencies
+        run: bash scripts/build_linux_dependencies.sh
+      - name: Build complete native runner
+        run: make -f Makefile.linux -j2 all linux-native-smoke linux-mock-stream
+      - name: Decode and present synthetic video and audio
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x180:rate=60 -frames:v 8 -c:v libx264 -preset ultrafast -tune zerolatency -g 1 -pix_fmt yuv420p -f h264 /tmp/fixture.h264
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x180:rate=60 -frames:v 8 -c:v libx265 -preset ultrafast -x265-params pools=1:frame-threads=1:keyint=1:log-level=error -pix_fmt yuv420p -f hevc /tmp/fixture.hevc
+          xvfb-run -a build/linux/linux_native_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+      - name: Stream from the local Xbox mock
+        run: |
+          python3 -m venv build/mock-venv
+          build/mock-venv/bin/pip install -r linux/mock-requirements.txt
+          build/mock-venv/bin/python tools/mock_xbox/test_protocol_shapes.py
+          build/mock-venv/bin/python scripts/linux_mock_smoke.py
+      - name: Prepare Borealis native UI sources
+        run: python3 scripts/prepare_linux_ui.py
+      - name: Prepare native PlayStation SDK sources
+        run: python3 scripts/prepare_linux_chiaki.py
+      - name: Build original LunarNX UI for Linux
+        run: |
+          cmake -S linux/ui -B build/linux-ui -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/linux-ui --parallel 2
+      - name: Validate native settings and SDL controller routing
+        run: ctest --test-dir build/linux-ui --output-on-failure
+      - name: Decode native video with unavailable acceleration and explicit CPU mode
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          LUNARNX_EXPECT_NATIVE_DECODER: software
+        run: |
+          decode_state=$(mktemp -d)
+          XDG_CACHE_HOME="$decode_state" LUNARNX_VAAPI_DEVICE=/dev/lunarnx-missing-render-device build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          XDG_CACHE_HOME="$decode_state" LUNARNX_VIDEO_DECODE=software build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          XDG_CACHE_HOME="$decode_state" LUNARNX_TEST_SETTINGS_SOFTWARE=1 build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          XDG_CACHE_HOME="$decode_state" LUNARNX_TEST_RUNTIME_FALLBACK=1 build/linux-ui/native_video_decode_smoke /tmp/fixture.h264 /tmp/fixture.hevc
+          python3 - "$decode_state" <<'PY'
+          from pathlib import Path
+          import sys
+          text = (Path(sys.argv[1]) / "lunarnx/lunarnx.log").read_text()
+          assert "selected=software reason=accelerator-open-failed" in text
+          assert "selected=software reason=override" in text
+          assert "selected=software reason=settings" in text
+          assert "selected=software reason=accelerator-runtime-failure" in text
+          PY
+      - name: Verify native HTTPS trust and failure diagnostics
+        run: python3 scripts/linux_tls_smoke.py
+      - name: Render native menus and settings
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          native_ui_state=$(mktemp -d)
+          XDG_CONFIG_HOME="$native_ui_state/config" XDG_CACHE_HOME="$native_ui_state/cache" xvfb-run -a build/linux-ui/LunarNX_Linux --ui-smoke
+      - name: Stream inside the native UI
+        run: build/mock-venv/bin/python scripts/linux_mock_smoke.py --native-ui
+      - name: Replay PlayStation media through the integrated runtime
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          ps_replay_state=$(mktemp -d)
+          trap 'find "$ps_replay_state/cache" -type f -name lunarnx.log -exec tail -n 100 {} +' ERR
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 8 -c:v libx264 -preset ultrafast -tune zerolatency -g 30 -pix_fmt yuv420p -c:a libopus -ac 2 -frame_duration 10 /tmp/ps-replay-h264.mp4
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 8 -c:v libx265 -preset ultrafast -tune zerolatency -x265-params pools=1:frame-threads=1:keyint=30:log-level=error -pix_fmt yuv420p -c:a libopus -ac 2 -frame_duration 10 /tmp/ps-replay-hevc.mp4
+          mkdir -p "$ps_replay_state/config/lunarnx"
+          printf '{"ps_touch_gamepad_enabled":true,"ps_touch_gamepad_opacity":50}\n' > "$ps_replay_state/config/lunarnx/config.json"
+          XDG_CONFIG_HOME="$ps_replay_state/config" XDG_CACHE_HOME="$ps_replay_state/cache" xvfb-run -a build/linux-ui/LunarNX_Linux --ps-replay /tmp/ps-replay-h264.mp4
+          printf '{"ps_touch_gamepad_enabled":false}\n' > "$ps_replay_state/config/lunarnx/config.json"
+          XDG_CONFIG_HOME="$ps_replay_state/config" XDG_CACHE_HOME="$ps_replay_state/cache" xvfb-run -a build/linux-ui/LunarNX_Linux --ps-replay /tmp/ps-replay-hevc.mp4 --ps-hevc
+      - name: Package Linux AppImage and matching source
+        run: |
+          python3 scripts/package_linux_appimage.py
+          python3 scripts/archive_port_sources.py build/packages/LunarNX-Linux-corresponding-source.tar.gz
+      - name: Validate packaged AppImage
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          appimage_state=$(mktemp -d)
+          XDG_CONFIG_HOME="$appimage_state/config" XDG_CACHE_HOME="$appimage_state/cache" xvfb-run -a build/packages/LunarNX-Linux-x86_64.AppImage --ui-smoke
+          XDG_CONFIG_HOME="$appimage_state/config" XDG_CACHE_HOME="$appimage_state/cache" xvfb-run -a build/packages/LunarNX-Linux-x86_64.AppImage --ps-replay /tmp/ps-replay-h264.mp4
+          XDG_CONFIG_HOME="$appimage_state/config" XDG_CACHE_HOME="$appimage_state/cache" xvfb-run -a build/packages/LunarNX-Linux-x86_64.AppImage --ps-replay /tmp/ps-replay-hevc.mp4 --ps-hevc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarNX-Linux-AppImage-x86_64
+          path: |
+            build/packages/LunarNX-Linux-x86_64.AppImage
+            build/packages/LunarNX-Linux-corresponding-source.tar.gz
+          if-no-files-found: error
+      - name: Focused transport regressions
+        run: |
+          python3 tests/xbox_stream_session_order_test.py
+          python3 tests/libpeer_sctp_config_test.py
+          python3 tests/libpeer_dtls_read_loop_test.py
+          python3 tests/datachannel_ppid_test.py
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarNX-Linux-native-test-runner
+          path: |
+            build/linux/LunarNX_Desktop
+            build/linux-ui/LunarNX_Linux
+            build/linux-ui/resources
+            lib/borealis/LINUX_PROVENANCE.json
+            lib/borealis/LICENSE*
+            lib/chiaki-native/LINUX_PROVENANCE.json
+            lib/chiaki-native/**/COPYING*
+            lib/chiaki-native/**/LICENSE*
+            lib/libpeer/LINUX_PROVENANCE.json
+            LICENSE
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+  native-chiaki:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PlayStation SDK development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make pkg-config libssl-dev libopus-dev libjson-c-dev libminiupnpc-dev libevent-dev protobuf-compiler python3-protobuf
+      - name: Prepare pinned Chiaki and WebSocket curl archives
+        run: python3 scripts/prepare_linux_chiaki.py
+      - name: Build patched native PlayStation SDK
+        run: bash scripts/build_linux_chiaki.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarNX-Linux-Chiaki-build-provenance
+          path: |
+            lib/chiaki-native/LINUX_PROVENANCE.json
+            build/linux-chiaki/lib/include/chiaki/config.h
+          if-no-files-found: error

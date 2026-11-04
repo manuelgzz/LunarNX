@@ -1,0 +1,59 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'org.lunarnx.app'
+    compileSdk 35
+    ndkVersion '28.2.13676358'
+    defaultConfig {
+        applicationId 'org.lunarnx.app'
+        minSdk 29
+        targetSdk 35
+        versionCode 4
+        versionName '0.1-native-video-acceleration'
+        ndk { abiFilters 'arm64-v8a' }
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_shared', '-DCMAKE_BUILD_TYPE=Release',
+                    '-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache',
+                    '-DCMAKE_JOB_POOLS=compile=2', '-DCMAKE_JOB_POOL_COMPILE=compile'
+                targets 'main'
+            }
+        }
+    }
+    sourceSets {
+        main {
+            java.srcDirs += 'generated/java'
+            assets.srcDirs += 'generated/assets'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path '../../linux/ui/CMakeLists.txt'
+            version '3.22.1'
+        }
+    }
+    signingConfigs {
+        lunarDevelopment {
+            def keystorePath = System.getenv('LUNARNX_KEYSTORE_PATH')
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storeType 'PKCS12'
+                storePassword System.getenv('LUNARNX_KEYSTORE_PASSWORD')
+                keyAlias 'lunarnx'
+                keyPassword System.getenv('LUNARNX_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            // Stable development key supplied by CI secrets so updates install
+            // over the previous build; without it Gradle keeps its debug key.
+            if (System.getenv('LUNARNX_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.lunarDevelopment
+            }
+        }
+        release { minifyEnabled false }
+    }
+    packaging { jniLibs { useLegacyPackaging false } }
+}

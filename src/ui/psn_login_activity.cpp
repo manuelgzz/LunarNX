@@ -1,4 +1,4 @@
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 #include "psn_login_activity.h"
 #include "qr_code.h"
 #include "qr_code_view.h"
@@ -154,7 +154,7 @@ void PsnLoginActivity::startPhoneLogin() {
         if (qr_view_) qr_view_->clearQrCode();
         if (status_) {
             status_->setText("Could not start phone sign-in: " + callback_server_.getError() +
-                             ". Check that the Switch is connected to Wi-Fi.");
+                             ". Check the local network connection.");
             status_->setTextColor(uiPalette().error);
         }
         return;

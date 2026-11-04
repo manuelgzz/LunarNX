@@ -1,8 +1,9 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include <borealis.hpp>
 #include "../ps/ps_manager.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -67,6 +68,10 @@ private:
     std::string pending_wake_mac_;
 
     void startLanDiscovery();
+    bool hasLocalHost() const {
+        return std::any_of(hosts_.begin(), hosts_.end(),
+            [](const ps::PsConsole& h) { return h.local.has_value(); });
+    }
     void fetchPsnConsoles();
     void stopDiscovery();
     void updateAccountUi();

@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(LUNARNX_NATIVE_UI)
 
 #include <borealis.hpp>
 
@@ -11,11 +11,19 @@
 namespace lunar::ui {
 
 struct StreamSettingsSnapshot {
+    bool touch_gamepad_enabled = false;
+    int touch_gamepad_opacity = 50;
+    bool show_decoder_overlay = false;
+    stream::NativeDecodeMode native_decode_mode = stream::NativeDecodeMode::Automatic;
     int width = 1280;
     int height = 720;
     int bitrate_kbps = 10000;
     std::string preferred_game_language = "auto";
+#ifdef __SWITCH__
     stream::VideoBackend video_backend = stream::VideoBackend::HardwareZeroCopy;
+#else
+    stream::VideoBackend video_backend = stream::VideoBackend::Software;
+#endif
     stream::PostProcessMode post_process_mode = stream::PostProcessMode::Off;
     bool dithering_enabled = false;
     bool vibration_enabled = true;

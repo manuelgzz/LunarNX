@@ -1,10 +1,15 @@
 #include "button_mapping.h"
 #include "../common.h"
 #include <cJSON.h>
+#ifdef __SWITCH__
 #include <borealis/core/application.hpp>
 #include <borealis/core/platform.hpp>
 #include <borealis/platforms/switch/switch_input.hpp>
 #include <switch.h>
+#else
+#include "../platform/native_gamepad.h"
+using namespace lunar::platform::mapping_bits;
+#endif
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
@@ -20,8 +25,13 @@ struct ButtonName {
 };
 
 constexpr ButtonName kButtons[] = {
+#ifdef __SWITCH__
     {HidNpadButton_A, "A"}, {HidNpadButton_B, "B"},
     {HidNpadButton_X, "X"}, {HidNpadButton_Y, "Y"},
+#else
+    {HidNpadButton_A, "B"}, {HidNpadButton_B, "A"},
+    {HidNpadButton_X, "Y"}, {HidNpadButton_Y, "X"},
+#endif
     {HidNpadButton_L, "L"}, {HidNpadButton_R, "R"},
     {HidNpadButton_ZL, "ZL"}, {HidNpadButton_ZR, "ZR"},
     {HidNpadButton_StickL, "L3"}, {HidNpadButton_StickR, "R3"},
@@ -31,6 +41,7 @@ constexpr ButtonName kButtons[] = {
     {kButtonMappingCapture, "Capture"},
 };
 
+#ifdef __SWITCH__
 std::mutex g_capture_button_mutex;
 size_t g_capture_button_users = 0;
 brls::ButtonOverrideMode g_previous_capture_button_mode =
@@ -41,6 +52,8 @@ brls::SwitchInputManager* switchInputManager() {
     if (!platform) return nullptr;
     return static_cast<brls::SwitchInputManager*>(platform->getInputManager());
 }
+
+#endif
 
 cJSON* readConfig() {
     FILE* file = std::fopen(lunar::get_config_path(), "rb");
@@ -171,6 +184,7 @@ bool mappingUsesCaptureButton(const ButtonMapping& mapping) {
 }
 
 void acquireCaptureButtonInput() {
+#ifdef __SWITCH__
     std::lock_guard<std::mutex> lock(g_capture_button_mutex);
     auto* input = switchInputManager();
     if (!input) return;
@@ -179,9 +193,11 @@ void acquireCaptureButtonInput() {
         appletSetRequiresCaptureButtonShortPressedMessage(true);
         input->setScreenshotButtonOverrideMode(brls::ButtonOverrideMode::CUSTOM_EVENT);
     }
+#endif
 }
 
 void releaseCaptureButtonInput() {
+#ifdef __SWITCH__
     std::lock_guard<std::mutex> lock(g_capture_button_mutex);
     if (g_capture_button_users == 0) return;
     if (--g_capture_button_users != 0) return;
@@ -189,11 +205,16 @@ void releaseCaptureButtonInput() {
     if (!input) return;
     input->setScreenshotButtonOverrideMode(g_previous_capture_button_mode);
     appletSetRequiresCaptureButtonShortPressedMessage(false);
+#endif
 }
 
 bool isCaptureButtonPressed() {
+#ifdef __SWITCH__
     auto* input = switchInputManager();
     return input && input->isScreenshotButtonPressed();
+#else
+    return (platform::nativeButtons() & kButtonMappingCapture) != 0;
+#endif
 }
 
 } // namespace lunar::input
