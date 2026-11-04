@@ -1,5 +1,15 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-03 — Búsqueda LAN automática más robusta (Android/Switch)
+
+- Reporte: en Android la búsqueda automática no se ejecutaba (Linux sí). Causa
+  no confirmada (no hay log del dispositivo). Cambio: un worker espera 400 ms,
+  lanza `startLanDiscovery()` en el hilo de UI y, si 4 s después no hay
+  consolas locales, la repite una vez; registra `Auto Search LAN attempt=N`.
+  Aplica igual a Switch (misma ruta de código; revisado: nifm y difusión
+  dirigida ya existían). Sin validar en dispositivo: si sigue fallando en
+  Android, compartir `lunarnx.log` (líneas `ui-ps` y `ps-manager`).
+
 ## 2026-11-03 — Firma estable del APK de desarrollo
 
 - Generada una clave PKCS12 de desarrollo (RSA 3072, ~30 años) fuera del repo y
