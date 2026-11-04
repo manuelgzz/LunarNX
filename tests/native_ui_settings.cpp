@@ -36,26 +36,46 @@ void checkSettings() {
     std::ofstream(get_config_path()) << R"({"future_option":"preserve"})";
     auto xbox = ui::loadStreamSettings();
     xbox.width = 1920; xbox.height = 1080; xbox.bitrate_kbps = 30000;
+    require(xbox.native_decode_mode == stream::NativeDecodeMode::Automatic,
+            "New Xbox installations must retain automatic acceleration");
+    xbox.native_decode_mode = stream::NativeDecodeMode::Software;
+    xbox.show_decoder_overlay = true;
+    xbox.touch_gamepad_enabled = true; xbox.touch_gamepad_opacity = 25;
     xbox.preferred_game_language = "es-MX";
     xbox.vibration_enabled = false; xbox.rumble_strength_percent = 25;
     require(ui::saveStreamSettings(xbox), "Cannot save Xbox settings");
     auto ps = ui::loadPsSettings();
     ps.width = 1280; ps.height = 720; ps.bitrate_kbps = 20000;
+    require(ps.native_decode_mode == stream::NativeDecodeMode::Automatic,
+            "Xbox selection must not change PlayStation defaults");
     ps.video_codec = stream::VideoCodec::HEVC;
     ps.vibration_enabled = true; ps.rumble_strength_percent = 75;
     require(ui::savePsSettings(ps), "Cannot save PlayStation settings");
     auto restoredXbox = ui::loadStreamSettings();
     require(restoredXbox.height == 1080 && restoredXbox.bitrate_kbps == 30000 &&
             restoredXbox.preferred_game_language == "es-MX" &&
+            restoredXbox.native_decode_mode == stream::NativeDecodeMode::Software &&
+            restoredXbox.show_decoder_overlay &&
+            restoredXbox.touch_gamepad_enabled && restoredXbox.touch_gamepad_opacity == 25 &&
             !restoredXbox.vibration_enabled && restoredXbox.rumble_strength_percent == 25,
             "PlayStation save changed independent Xbox settings");
+    ps.native_decode_mode = stream::NativeDecodeMode::Software;
+    ps.touch_gamepad_enabled = true; ps.touch_gamepad_opacity = 75;
+    require(ui::savePsSettings(ps), "Cannot save PlayStation CPU preference");
+    xbox.native_decode_mode = stream::NativeDecodeMode::Automatic;
+    xbox.show_decoder_overlay = false;
     xbox.rumble_strength_percent = 50;
     require(ui::saveStreamSettings(xbox), "Cannot update Xbox settings");
     auto restoredPs = ui::loadPsSettings();
     require(restoredPs.height == 720 && restoredPs.bitrate_kbps == 20000 &&
             restoredPs.video_codec == stream::VideoCodec::HEVC &&
+            restoredPs.native_decode_mode == stream::NativeDecodeMode::Software &&
+            restoredPs.touch_gamepad_enabled && restoredPs.touch_gamepad_opacity == 75 &&
             restoredPs.vibration_enabled && restoredPs.rumble_strength_percent == 75,
             "Xbox save changed independent PlayStation settings");
+    require(ui::loadStreamSettings().native_decode_mode == stream::NativeDecodeMode::Automatic &&
+            !ui::loadStreamSettings().show_decoder_overlay,
+            "Automatic mode and hidden overlay did not survive reloading");
     auto xboxMapping = input::defaultButtonMapping(input::ButtonMappingProfile::Xbox);
     auto psMapping = input::defaultButtonMapping(input::ButtonMappingProfile::PlayStation);
     xboxMapping[0] = platform::mapping_bits::HidNpadButton_L;
@@ -99,6 +119,9 @@ void checkController() {
     SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, 16000);
     SDL_JoystickUpdate();
     const auto defaults = input::defaultButtonMapping(input::ButtonMappingProfile::Xbox);
+    platform::configureNativeTouchGamepad(true, true, false);
+    require(platform::nativeTouchGamepadSnapshot().enabled,
+            "Virtual gamepad configuration did not reach native input");
     const auto state = platform::nativeGamepad(defaults);
     require(state.a && !state.b && state.left_stick_x > 0, "SDL gamepad input was not routed");
     auto remapped = defaults;

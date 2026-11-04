@@ -1,4 +1,5 @@
 #pragma once
+#include "native_decode_mode.h"
 
 #include "../common.h"
 #include "../diagnostics.h"
@@ -132,6 +133,7 @@ inline bool usesZeroCopyRender(VideoBackend backend) {
 }
 
 struct MediaPipelineOptions {
+    NativeDecodeMode native_decode_mode = NativeDecodeMode::Automatic;
     VideoPipelinePath video_path = VideoPipelinePath::Xbox;
     VideoCodec video_codec = VideoCodec::H264;
     VideoBackend video_backend = VideoBackend::HardwareZeroCopy;

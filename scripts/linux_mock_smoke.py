@@ -43,6 +43,10 @@ def main():
                        "XDG_CONFIG_HOME": str(directory / "config"),
                        "XDG_CACHE_HOME": str(directory / "cache"),
                        "LIBGL_ALWAYS_SOFTWARE": "1"}
+        if native_ui:
+            config = directory / "config/lunarnx/config.json"
+            config.parent.mkdir(parents=True)
+            config.write_text('{"xbox_touch_gamepad_enabled":true,"xbox_touch_gamepad_opacity":50}')
         server_log = directory / "server.log"
         client_log = directory / "client.log"
         with server_log.open("w") as output:

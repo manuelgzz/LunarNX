@@ -59,6 +59,10 @@ void checkVideo(lunar::stream::VideoPipelinePath path,
     PerfStats stats;
     decoder->setPerfStats(&stats);
     decoder->setVideoBackend(VideoBackend::Software);
+#ifdef LUNARNX_NATIVE_UI
+    if (std::getenv("LUNARNX_TEST_SETTINGS_SOFTWARE"))
+        decoder->setNativeDecodeMode(NativeDecodeMode::Software);
+#endif
     decoder->setVideoCodec(codec);
     require(decoder->initialize(320, 180), "video decoder initialization failed");
     if (replace) require(replace(), "runtime fallback did not reopen software");

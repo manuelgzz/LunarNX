@@ -66,6 +66,8 @@ public:
     // PS-specific
     bool startStream();
     void requestCancel();
+    // Configure before startStream(); the session snapshots this preference.
+    void setNativeDecodeMode(stream::NativeDecodeMode mode) { native_decode_mode_ = mode; }
     void setRumbleEnabled(bool enabled);
     void setRumbleStrengthPercent(int percent);
     bool setPsnCredentials(std::string access_token, std::string account_id);
@@ -96,6 +98,7 @@ private:
     std::string psn_account_id_;
     int width_, height_, fps_, bitrate_kbps_;
     stream::VideoCodec video_codec_;
+    stream::NativeDecodeMode native_decode_mode_ = stream::NativeDecodeMode::Automatic;
     stream::VideoBackend video_backend_;
 
     // Components

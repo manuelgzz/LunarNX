@@ -11,6 +11,10 @@
 namespace lunar::ui {
 
 struct StreamSettingsSnapshot {
+    bool touch_gamepad_enabled = false;
+    int touch_gamepad_opacity = 50;
+    bool show_decoder_overlay = false;
+    stream::NativeDecodeMode native_decode_mode = stream::NativeDecodeMode::Automatic;
     int width = 1280;
     int height = 720;
     int bitrate_kbps = 10000;

@@ -443,6 +443,7 @@ bool PsStreamController::startStream() {
     media_opts.video_codec = video_codec_;
     media_opts.hold_non_target_startup_frames = true;
     media_opts.video_backend = video_backend_;
+    media_opts.native_decode_mode = native_decode_mode_;
 #if LUNARNX_PS_DIRECT_VIDEO
     media_opts.video_scheduling =
         stream::VideoSchedulingMode::DirectLowLatency;
