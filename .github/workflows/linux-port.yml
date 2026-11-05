@@ -22,6 +22,16 @@ on:
       - "src/**"
       - ".github/workflows/linux-port.yml"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag to attach artifacts to
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      release_tag:
+        required: false
+        type: string
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: false
@@ -56,6 +66,8 @@ jobs:
           assert "build/linux/LunarNX_Desktop" in commands
           PY
   native-runner:
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +173,13 @@ jobs:
             build/packages/LunarNX-Linux-x86_64.AppImage
             build/packages/LunarNX-Linux-corresponding-source.tar.gz
           if-no-files-found: error
+      - name: Attach AppImage to GitHub Release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" build/packages/LunarNX-Linux-x86_64.AppImage build/packages/LunarNX-Linux-corresponding-source.tar.gz --clobber
       - name: Focused transport regressions
         run: |
           python3 tests/xbox_stream_session_order_test.py

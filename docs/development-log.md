@@ -1,5 +1,11 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-04 — Release v0.4.0 con APK y AppImage
+
+- Se habilitó en el repo el permiso de Actions para crear PR (release-please fallaba); PR #5 fusionado y publicado v0.4.0 (NRO/ZIP de Switch).
+- release-please.yml ahora también llama a android-port.yml y linux-port.yml con release_tag; adjuntan LunarNX.apk (firma estable) y LunarNX-Linux-x86_64.AppImage más sus fuentes, y un job final regenera SHA256SUMS con todo. Ambos workflows aceptan release_tag por workflow_dispatch para releases ya publicados.
+- Validación: pruebas de fragmentos del workflow OK localmente; ejecución real pendiente en CI. Sin pruebas en dispositivo.
+
 ## 2026-11-04 — Cancelado el prototipo LSFG
 
 - El usuario probó el APK de la rama feature/android-frame-generation (último commit 22078c4, CI Android 41772079843 en verde) y se sintió lento con y sin LSFG; decidió cancelar. Rama remota y local eliminadas sin fusionar; main no contiene código LSFG. El fork manuelgzz/dxbc queda sin uso.

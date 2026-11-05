@@ -8,6 +8,7 @@ consolidado en **main** de manuelgzz/LunarNX (sin PR al repositorio original).
 Pruebas en Android: Xbox más estable por software, PlayStation mejor con
 MediaCodec. Abierto: en Linux con PlayStation el indicador siempre muestra SW
 (pendiente del log [video-decode]). Generación de frames (LSFG) en Android: probada y cancelada por decisión del usuario; la rama feature/android-frame-generation se eliminó (sin fusionar). Siguiente: validar en hardware y el indicador SW en Linux PS.
+Releases: release-please (PR automático, fusionarlo publica) adjunta NRO, APK y AppImage con SHA256SUMS.
 Repositorio de trabajo: https://github.com/manuelgzz/LunarNX
 
 ## Leer primero

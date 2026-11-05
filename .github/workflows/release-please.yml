@@ -37,3 +37,40 @@ jobs:
     uses: ./.github/workflows/build-switch.yml
     with:
       release_tag: ${{ needs.release-please.outputs.tag_name }}
+
+  build-android:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/android-port.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.release-please.outputs.tag_name }}
+
+  build-linux:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/linux-port.yml
+    with:
+      release_tag: ${{ needs.release-please.outputs.tag_name }}
+
+  checksums:
+    needs: [release-please, build-release, build-android, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Regenerate SHA256SUMS for all assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          mkdir assets && cd assets
+          gh release download "$TAG" --pattern 'LunarNX.nro' --pattern 'LunarNX.zip' --pattern 'LunarNX.apk' --pattern 'LunarNX-Linux-x86_64.AppImage'
+          sha256sum * > SHA256SUMS
+          gh release upload "$TAG" SHA256SUMS --clobber

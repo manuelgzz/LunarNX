@@ -6,6 +6,16 @@ on:
   pull_request:
     paths: ["android/**", "linux/ui/**", "src/**", "scripts/*android*", ".github/workflows/android-port.yml"]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag to attach artifacts to
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      release_tag:
+        required: false
+        type: string
 concurrency:
   group: android-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -15,6 +25,8 @@ jobs:
   apk-arm64:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      contents: write
     env:
       ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/28.2.13676358
       PKG_CONFIG_LIBDIR: ${{ github.workspace }}/build/android-prefix/lib/pkgconfig
@@ -89,6 +101,14 @@ jobs:
             build/packages/LunarNX-Android-corresponding-source.tar.gz
             lib/android-sources/ANDROID_PROVENANCE.json
           if-no-files-found: error
+      - name: Attach APK to GitHub Release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          cp build/packages/LunarNX-Android-arm64-debug.apk build/packages/LunarNX.apk
+          gh release upload "$RELEASE_TAG" build/packages/LunarNX.apk build/packages/LunarNX-Android-corresponding-source.tar.gz --clobber
       - uses: actions/cache/save@v4
         if: always()
         with:
