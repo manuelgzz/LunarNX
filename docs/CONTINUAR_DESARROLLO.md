@@ -7,8 +7,7 @@ decoder, Search LAN automático en PlayStation, firma estable de Android) está
 consolidado en **main** de manuelgzz/LunarNX (sin PR al repositorio original).
 Pruebas en Android: Xbox más estable por software, PlayStation mejor con
 MediaCodec. Abierto: en Linux con PlayStation el indicador siempre muestra SW
-(pendiente del log [video-decode]). Siguiente: prototipo de generación de frames
-(LSFG) en una rama nueva desde main.
+(pendiente del log [video-decode]). Generación de frames (LSFG) en Android: probada y cancelada por decisión del usuario; la rama feature/android-frame-generation se eliminó (sin fusionar). Siguiente: validar en hardware y el indicador SW en Linux PS.
 Repositorio de trabajo: https://github.com/manuelgzz/LunarNX
 
 ## Leer primero

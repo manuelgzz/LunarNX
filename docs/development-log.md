@@ -1,5 +1,10 @@
 # Registro de desarrollo y continuidad
 
+## 2026-11-04 — Cancelado el prototipo LSFG
+
+- El usuario probó el APK de la rama feature/android-frame-generation (último commit 22078c4, CI Android 41772079843 en verde) y se sintió lento con y sin LSFG; decidió cancelar. Rama remota y local eliminadas sin fusionar; main no contiene código LSFG. El fork manuelgzz/dxbc queda sin uso.
+- Siguiente: validación en hardware (Switch, actualización Android, AppImage) e indicador SW en Linux PS.
+
 ## 2026-11-04 — Consolidación final en main
 
 - Implementado: PR #3 (gamepads táctiles, selector de decoder) y PR #4 (Search LAN automático, diagnóstico [video-decode], firma estable) fusionados en develop; develop fusionado en main de manuelgzz/LunarNX. No se abrió ningún PR hacia thinkzhou/LunarNX.
